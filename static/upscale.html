@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Upscale — Генерация изображений</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><a href="/" class="back">←</a> <i class="ico">🔍</i> Upscale (повышение чёткости)</h1>
+    <div class="topbar-right">
+      <a class="btn btn-outline btn-sm" href="/files" title="Файловый менеджер">📁 Файлы</a>
+    </div>
+  </header>
+
+  <main class="page page--narrow">
+    <section class="card">
+      <h2>Модель и промпт</h2>
+      <div class="field">
+        <label for="model">Модель</label>
+        <select id="model" class="select">
+          <option value="flux2-klein-4b" selected>FLUX.2 Klein 4B (multimodal)</option>
+          <option value="krea2-turbo">Krea 2 Turbo (img2img)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="prompt">Промпт</label>
+        <textarea id="prompt" class="input" rows="3">Upscale this image: increase resolution and sharpness, enhance fine details, reduce noise, pixelation and compression artifacts, keep the original composition and subject unchanged.</textarea>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Одна картинка</h2>
+      <div class="field">
+        <label for="imageFile">Файл изображения</label>
+        <input type="file" id="imageFile" accept=".png,.jpg,.jpeg,.webp">
+      </div>
+      <div class="actions">
+        <button id="btnRun" class="btn btn-primary">Upscale</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Массовый upscale (CSV)</h2>
+      <p class="hint">CSV с колонками <code>id</code> (имя файла результата) и <code>image</code> (URL исходной картинки).</p>
+      <div class="field">
+        <label for="csvFile">CSV файл</label>
+        <input type="file" id="csvFile" accept=".csv">
+      </div>
+      <div class="actions">
+        <button id="btnBatch" class="btn btn-primary">Upscale (массово)</button>
+      </div>
+      <div class="meta" id="batchStatus" style="margin-top:12px;"></div>
+      <a class="btn btn-outline btn-sm" id="btnBatchZip" href="#" download style="display:none;">⬇ Скачать ZIP</a>
+      <div class="variants" id="batchResults" style="margin-top:12px;"></div>
+    </section>
+
+    <section class="card" id="resultCard" style="display:none">
+      <h2>Результат</h2>
+      <p class="hint" id="status"></p>
+      <div class="variants" id="results"></div>
+      <div class="err" id="error" style="display:none;"></div>
+    </section>
+  </main>
+
+  <script src="/static/upscale.js?v=2"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>

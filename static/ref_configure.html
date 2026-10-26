@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Настройка референса — Генерация изображений</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><i class="ico">🖼️</i> Генерация по референсам</h1>
+  </header>
+
+  <main class="page page--narrow">
+    <section class="card">
+      <h2 id="jobTitle">Задача</h2>
+      <p class="hint" id="jobFile"></p>
+
+      <div class="field">
+        <label for="siteName">Название сайта (вшивается в изображение)</label>
+        <input type="text" id="siteName" class="input" placeholder="например: stroy-mag.ru">
+        <p class="hint">Будет наноситься на товар/этикетку/спецодежду в зависимости от типа изображения.</p>
+      </div>
+
+      <div class="field">
+        <label class="check">
+          <input type="checkbox" id="chkWatermark"> Режим Watermark (картинка как исходная, без водяного знака и без нанесения сайта)
+        </label>
+        <p class="hint">Не добавляет наклейки/этикетки/бренд. Изображение повторяет исходное, но без водяных знаков и посторонних надписей.</p>
+      </div>
+
+      <div class="field">
+        <label for="overlayFile">PNG-водяной знак (накладывается поверх, по центру, в исходном размере)</label>
+        <input type="file" id="overlayFile" accept=".png">
+        <p class="hint" id="overlayStatus">Опционально. Полупрозрачный PNG со шрифтом/логотипом, который будет нанесён поверх каждого сгенерированного изображения.</p>
+      </div>
+
+      <div class="field">
+        <label>Режим генерации</label>
+        <div class="check-group">
+          <label class="check">
+            <input type="checkbox" id="modeMultimodal" value="multimodal"> multimodal (klein)
+          </label>
+        </div>
+        <p class="hint">Генерация по референсу выполняется моделью FLUX.2 Klein.</p>
+      </div>
+
+      <div class="field" id="copiesMultimodal" style="display:none">
+        <label for="copiesKlein">Копий (klein)</label>
+        <input type="number" id="copiesKlein" class="input" min="1" max="9" step="1" value="1">
+      </div>
+
+      <div class="actions">
+        <button id="btnRun" class="btn btn-primary">Запустить генерацию</button>
+        <a href="/" class="btn btn-outline">Отмена</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <details class="tutorial">
+        <summary class="tutorial-summary">📖 Инструкция: как работает генерация по референсам</summary>
+        <div class="tutorial-body">
+
+          <h3>1. Что делает этот режим</h3>
+          <p>По каждому товару берётся картинка-референс и на её основе генерируется новое изображение с вашим брендом (названием сайта). Готовые картинки сохраняются на диск — на сайт они <strong>не загружаются автоматически</strong>.</p>
+
+          <h3>2. Как подготовить CSV-файл</h3>
+          <p>Файл в формате CSV (разделитель — запятая или точка с запятой). Заголовки первой строки:</p>
+          <table class="table tutorial-table">
+            <thead><tr><th>Колонка</th><th>Обязательно</th><th>Что указывать</th></tr></thead>
+            <tbody>
+              <tr><td><code>post_title</code></td><td>Да</td><td>Название товара (или записи, если type = post_image)</td></tr>
+              <tr><td><code>ID</code></td><td>Желательно</td><td>ID товара — используется в имени выходного файла</td></tr>
+              <tr><td><code>image</code></td><td>Нет</td><td>Прямая ссылка на картинку-референс. Если пусто — картинка будет найдена автоматически в интернете</td></tr>
+              <tr><td><code>type</code></td><td>Нет</td><td>Тип изображения (см. ниже). По умолчанию <code>standart</code></td></tr>
+            </tbody>
+          </table>
+
+          <h3>3. Типы изображений (колонка <code>type</code>)</h3>
+          <table class="table tutorial-table">
+            <thead><tr><th>Значение</th><th>Что получится</th><th>Размер</th></tr></thead>
+            <tbody>
+              <tr><td><code>standart</code></td><td>Товар на белом фоне, студийное фото, бренд на товаре</td><td>1:1</td></tr>
+              <tr><td><code>storage</code></td><td>Товар на металлическом стеллаже склада, этикетка с названием и сайтом</td><td>1:1</td></tr>
+              <tr><td><code>post_image</code></td><td>Изображение для записи (не товар). Широкая картинка, бренд на одном из объектов. Референс ищется в высоком разрешении (Full HD+)</td><td>21:9</td></tr>
+              <tr><td><code>application</code></td><td>Применение товара строителями, бренд на спецодежде или каске</td><td>1:1</td></tr>
+              <tr><td><code>all_product</code></td><td>Сразу 2 изображения: <code>storage</code> + <code>standart</code></td><td>1:1 ×2</td></tr>
+            </tbody>
+          </table>
+
+          <h3>4. Режим генерации</h3>
+          <ul>
+            <li><strong>multimodal</strong> — генерация «по мотивам» референса (модель klein).</li>
+          </ul>
+
+          <h3>5. Откуда берётся референс</h3>
+          <p>Если в колонке <code>image</code> указана ссылка — используется она. Если ссылки нет — картинка ищется автоматически по названию товара (через поисковик DuckDuckGo). Система выбирает <strong>самое крупное</strong> изображение из выдачи, чтобы не взять маленькое превью.</p>
+
+          <h3>6. Где искать результат</h3>
+          <p>После генерации выберите понравившиеся картинки и нажмите <strong>«Сохранить выбранные»</strong>. Файлы появятся в папке задачи:</p>
+          <ul>
+            <li><code>images/png/</code> — исходники в формате PNG (без потерь)</li>
+            <li><code>images/webp/</code> — готовые к загрузке сжатые WebP</li>
+          </ul>
+          <p>Найти файлы можно через раздел <strong>«📁 Файлы»</strong> в шапке главной страницы (папка с номером задачи и суффиксом <code>_ref_</code>).</p>
+
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <script src="/static/ref_configure.js?v=1"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>

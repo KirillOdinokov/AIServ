@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Генерация по единому промпту — Генерация изображений</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><a href="/" class="back">←</a> <i class="ico">✨</i> Генерация по единому промпту</h1>
+    <div class="topbar-right">
+      <a class="btn btn-outline btn-sm" href="/files" title="Файловый менеджер">📁 Файлы</a>
+    </div>
+  </header>
+
+  <main class="page page--narrow">
+    <section class="card">
+      <h2>Промпт</h2>
+      <div class="field">
+        <label for="prompt">Текст промпта</label>
+        <textarea id="prompt" class="input" rows="4" placeholder="Опишите изображение…"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="aspect">Соотношение сторон</label>
+        <select id="aspect" class="select">
+          <option value="1:1" selected>1:1 (квадрат)</option>
+          <option value="4:3">4:3</option>
+          <option value="16:9">16:9</option>
+          <option value="3:4">3:4</option>
+          <option value="9:16">9:16</option>
+        </select>
+      </div>
+
+      <div class="field" id="resolutionField">
+        <label for="resolution">Разрешение (для Nano Banana)</label>
+        <select id="resolution" class="select">
+          <option value="1k">1K</option>
+          <option value="2k" selected>2K</option>
+          <option value="4k">4K</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Модели</label>
+        <div class="model-options" id="modelOptions"></div>
+        <p class="hint" id="creditsHint"></p>
+      </div>
+
+      <div class="actions">
+        <button id="btnCreate" class="btn btn-primary">Создать изображение</button>
+      </div>
+    </section>
+
+    <section class="card" id="resultsCard" style="display:none">
+      <div class="approve-bar">
+        <h2>Результаты</h2>
+        <button id="btnSave" class="btn btn-success">💾 Сохранить</button>
+      </div>
+      <p class="hint" id="saveStatus"></p>
+      <div class="variants" id="results"></div>
+    </section>
+  </main>
+
+  <script src="/static/single.js?v=1"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>

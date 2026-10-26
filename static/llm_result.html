@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Результат — Генерация описаний</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><a href="/llm" class="back">←</a> <span id="jobTitle">Задача</span></h1>
+    <div class="actions">
+      <a class="btn btn-primary" id="btnExport" href="#">Скачать CSV</a>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="card progress-wrap">
+      <div class="progress-head">
+        <span class="badge" id="jobStatus">—</span>
+        <span class="meta" id="jobEta"></span>
+        <span class="meta" id="jobCounts"></span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </section>
+
+    <div id="itemsList"></div>
+  </main>
+
+  <script src="/static/llm_result.js?v=1"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Публикация на сайт</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><a href="/" class="back">←</a> <span id="pageTitle">Публикация изображений</span></h1>
+    <div class="actions" id="jobActions"></div>
+  </header>
+
+  <main class="page">
+    <section class="card">
+      <h2>Доступы к сайту</h2>
+      <div class="field">
+        <label>Адрес сайта</label>
+        <input type="text" id="site" class="input" placeholder="https://example.com">
+      </div>
+
+      <p class="hint">
+        Тип объекта (товар / категория товара / запись / рубрика) определяется
+        автоматически по ID из имени файла. Файлы вида <code>ID-N.webp</code>
+        — дополнительные изображения товара <code>ID</code>.
+      </p>
+
+      <div class="field">
+        <label class="check">
+          <input type="checkbox" id="insertInContent">
+          Вставлять изображение в текст записи (после абзаца в середине статьи)
+        </label>
+      </div>
+      <div class="field">
+        <label class="check">
+          <input type="checkbox" id="replaceMain">
+          Заменять основное изображение товара (если снято — добавлять как дополнительное)
+        </label>
+      </div>
+      <div class="field">
+        <label>CSS-класс для вставленного изображения (опционально)</label>
+        <input type="text" id="imgClass" class="input" placeholder="например: article-img">
+      </div>
+
+      <h3>WordPress (Application Password)</h3>
+      <p class="hint">Нужен для записей, рубрик и загрузки файлов.</p>
+      <div class="field">
+        <label>Логин</label>
+        <input type="text" id="wpUser" class="input" placeholder="admin">
+      </div>
+      <div class="field">
+        <label>Application Password</label>
+        <input type="password" id="wpPassword" class="input" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx">
+      </div>
+
+      <h3>WooCommerce (REST API ключи)</h3>
+      <p class="hint">Нужен для товаров и категорий товаров.</p>
+      <div class="field">
+        <label>Consumer Key</label>
+        <input type="text" id="wcKey" class="input" placeholder="ck_...">
+      </div>
+      <div class="field">
+        <label>Consumer Secret</label>
+        <input type="text" id="wcSecret" class="input" placeholder="cs_...">
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-outline" id="btnTest">Проверить доступ</button>
+        <button class="btn btn-primary" id="btnPublish">Опубликовать</button>
+      </div>
+      <div id="testResult" class="meta" style="margin-top:12px;"></div>
+    </section>
+
+    <section class="card">
+      <h2>Результаты</h2>
+      <div id="publishProgress" class="meta"></div>
+      <div id="publishResults"></div>
+    </section>
+  </main>
+
+  <script src="/static/publish.js?v=3"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>

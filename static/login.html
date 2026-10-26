@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Вход — FLUX Image Generator</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .login-wrap { max-width: 380px; margin: 80px auto; }
+    .login-card { padding: 32px; }
+    .login-card h1 { margin: 0 0 8px; font-size: 1.3rem; }
+    .login-card .hint { margin-bottom: 24px; }
+    .login-card input { width: 100%; box-sizing: border-box; }
+    #loginError { color: #842029; margin-top: 12px; min-height: 18px; }
+  </style>
+</head>
+<body>
+  <main class="login-wrap">
+    <section class="card login-card">
+      <h1>FLUX Image Generator</h1>
+      <p class="hint">Введите логин и пароль для входа</p>
+      <form id="loginForm">
+        <div class="field">
+          <label>Логин</label>
+          <input type="text" id="username" class="input" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label>Пароль</label>
+          <input type="password" id="password" class="input" autocomplete="current-password" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Войти</button>
+        <div id="loginError"></div>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const err = document.getElementById('loginError');
+      err.textContent = '';
+      const form = new FormData();
+      form.append('username', document.getElementById('username').value);
+      form.append('password', document.getElementById('password').value);
+      const res = await fetch('/api/login', { method: 'POST', body: form });
+      const data = await res.json();
+      if (data.ok) {
+        window.location.href = '/';
+      } else {
+        err.textContent = data.error || 'Ошибка входа';
+      }
+    });
+  </script>
+</body>
+</html>

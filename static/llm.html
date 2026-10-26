@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Генерация описаний товаров</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><i class="ico">📝</i> Генерация описаний товаров</h1>
+    <div class="topbar-right">
+      <span class="status-dot" id="peakStatus"></span>
+      <button class="pause-btn pause-btn--off" id="btnToggle" title="Остановить/возобновить"></button>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="card upload">
+      <h2>Загрузить CSV с товарами</h2>
+      <p class="hint">
+        Колонки: <code>ID</code>, <code>post_title</code>, <code>post_excerpt</code>, <code>post_content</code>.
+        Если описания нет — данные будут найдены в интернете (DuckDuckGo).
+      </p>
+      <form id="uploadForm">
+        <input type="file" id="csvFile" accept=".csv" required>
+        <button type="submit" class="btn btn-primary">Загрузить и запустить</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Задачи</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Файл</th>
+            <th>Прогресс</th>
+            <th>Статус</th>
+            <th>Создано</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="jobsBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="/static/llm.js?v=1"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>

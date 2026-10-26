@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Результат — Генерация изображений</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><a href="/" class="back">←</a> <span id="jobTitle">Задача</span></h1>
+    <div class="actions" id="jobActions"></div>
+  </header>
+
+  <main class="page">
+    <section class="card progress-wrap">
+      <div class="progress-head">
+        <span class="badge" id="jobStatus">—</span>
+        <span class="meta" id="jobEta"></span>
+        <span class="meta" id="jobCounts"></span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </section>
+
+    <section class="card" id="approveBar">
+      <div class="approve-bar">
+        <span class="meta" id="approveCount"></span>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button class="btn btn-outline" id="btnSelectAll">Выбрать всё</button>
+          <label class="check" style="margin-right:4px;">
+            <input type="checkbox" id="chkOriginals"> Сохранить исходники (PNG)
+          </label>
+          <button class="btn btn-primary" id="btnApprove">Утвердить выбранные</button>
+          <a class="btn btn-outline" id="btnZip" href="#" download style="display:none;">⬇ Скачать WEBP (.zip)</a>
+          <a class="btn btn-primary" id="btnPublish" href="#" style="display:none;">Перейти к публикации на WordPress →</a>
+        </div>
+      </div>
+    </section>
+
+    <div id="itemsList"></div>
+  </main>
+
+  <div class="lightbox" id="lightbox">
+    <button class="lightbox-close" id="lightboxClose">&times;</button>
+    <button class="lightbox-prev" id="lightboxPrev">&#10094;</button>
+    <img class="lightbox-img" id="lightboxImg" src="" alt="">
+    <button class="lightbox-next" id="lightboxNext">&#10095;</button>
+  </div>
+
+  <script src="/static/result.js?v=8"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>

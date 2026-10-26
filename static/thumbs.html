@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Миниатюры категорий — Генерация изображений</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><a href="/" class="back">←</a> <i class="ico">🧩</i> Миниатюры категорий</h1>
+    <div class="topbar-right">
+      <a class="btn btn-outline btn-sm" href="/files" title="Файловый менеджер">📁 Файлы</a>
+    </div>
+  </header>
+
+  <main class="page">
+    <section class="card">
+      <h2>Доступы к сайту (WooCommerce)</h2>
+      <p class="hint">
+        Система получит список категорий товаров, возьмёт по одному товару из каждой,
+        сгенерирует фотореалистичную 3D-иконку (webp 600×600) и загрузит её как миниатюру категории.
+      </p>
+
+      <div class="field">
+        <label>Адрес сайта</label>
+        <input type="text" id="site" class="input" placeholder="https://example.com">
+      </div>
+
+      <h3>WordPress (Application Password)</h3>
+      <p class="hint">Нужен для загрузки файлов (медиа).</p>
+      <div class="field">
+        <label>Логин</label>
+        <input type="text" id="wpUser" class="input" placeholder="admin">
+      </div>
+      <div class="field">
+        <label>Application Password</label>
+        <input type="password" id="wpPassword" class="input" placeholder="xxxx xxxx xxxx xxxx xxxx xxxx">
+      </div>
+
+      <h3>WooCommerce (REST API ключи)</h3>
+      <p class="hint">Нужен для получения категорий, товаров и назначения миниатюр.</p>
+      <div class="field">
+        <label>Consumer Key</label>
+        <input type="text" id="wcKey" class="input" placeholder="ck_...">
+      </div>
+      <div class="field">
+        <label>Consumer Secret</label>
+        <input type="text" id="wcSecret" class="input" placeholder="cs_...">
+      </div>
+
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-primary" id="btnFetch">Получить категории</button>
+      </div>
+      <div id="fetchStatus" class="meta" style="margin-top:12px;"></div>
+    </section>
+
+    <section class="card" id="categoriesCard" style="display:none;">
+      <h2>Категории <span id="catCount" class="meta"></span></h2>
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <button class="btn btn-primary" id="btnRun">Сгенерировать и загрузить миниатюры</button>
+      </div>
+      <div id="runStatus" class="meta" style="margin-bottom:12px;"></div>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Категория</th>
+            <th>Товар-референс</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody id="catBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="/static/thumbs.js?v=1"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>

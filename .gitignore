@@ -1,0 +1,57 @@
+# ─── Секреты (НИКОГДА не коммитить) ──────────────────────────────────────────
+*_token.txt
+hf_token.txt
+deepseek_token.txt
+ollama_token.txt
+nanobanana_token.txt
+SSH_access.txt
+access.txt
+.env
+.env.*
+
+# ─── Рантайм-состояние / данные ─────────────────────────────────────────────
+jobs.json
+jobs.json.bak
+llm_jobs.json
+llm_jobs.json.bak
+ref_jobs.json
+ref_jobs.json.bak
+video_jobs.json
+video_jobs.json.bak
+upscale_jobs.json
+upscale_jobs.json.bak
+thumb_jobs.json
+*.json.bak
+stats_history.jsonl
+output/
+models/
+ComfyUI/
+node_modules/
+example_prices/
+
+# ─── Локальные скретч-скрипты (содержат креды) ─────────────────────────────
+_*.py
+_*.csv
+
+# ─── Логи ────────────────────────────────────────────────────────────────────
+*.log
+*.err
+
+# ─── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# ─── Разные дампы данных ─────────────────────────────────────────────────────
+csv-list.txt
+select.txt
+generation result.txt
+qwen3_tags.json
+
+# ─── ОС / редакторы ──────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

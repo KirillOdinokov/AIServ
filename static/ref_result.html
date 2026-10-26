@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Результат — Генерация по референсам</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><a href="/" class="back">←</a> <span id="jobTitle">Задача</span></h1>
+  </header>
+
+  <main class="page">
+    <section class="card progress-wrap">
+      <div class="progress-head">
+        <span class="badge" id="jobStatus">—</span>
+        <span class="meta" id="jobEta"></span>
+        <span class="meta" id="jobCounts"></span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </section>
+
+    <section class="card" id="approveBar">
+      <div class="approve-bar">
+        <span class="meta" id="approveCount"></span>
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <button class="btn btn-outline" id="btnSelectAll">Выбрать всё</button>
+          <button class="btn btn-primary" id="btnApprove">Сохранить выбранные</button>
+          <span class="meta" id="finalizeStatus" style="display:none;"></span>
+        </div>
+      </div>
+    </section>
+
+    <div id="itemsList"></div>
+  </main>
+
+  <div class="lightbox" id="lightbox">
+    <button class="lightbox-close" id="lightboxClose">&times;</button>
+    <button class="lightbox-prev" id="lightboxPrev">&#10094;</button>
+    <img class="lightbox-img" id="lightboxImg" src="" alt="">
+    <button class="lightbox-next" id="lightboxNext">&#10095;</button>
+  </div>
+
+  <script src="/static/ref_result.js?v=1"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>

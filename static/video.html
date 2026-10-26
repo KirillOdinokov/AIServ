@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Генерация видео — Генерация изображений</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><a href="/" class="back">←</a> <i class="ico">🎬</i> Генерация видео</h1>
+    <div class="topbar-right">
+      <a class="btn btn-outline btn-sm" href="/files" title="Файловый менеджер">📁 Файлы</a>
+    </div>
+  </header>
+
+  <main class="page page--narrow">
+    <section class="card">
+      <h2>Промпт</h2>
+      <div class="field">
+        <label for="prompt">Текст промпта</label>
+        <textarea id="prompt" class="input" rows="4" placeholder="Опишите сцену для видео…"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="negativePrompt">Негативный промпт (опционально)</label>
+        <textarea id="negativePrompt" class="input" rows="2" placeholder="Что не должно быть в кадре: blurry, low quality, distorted, watermark, text…"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="model">Модель</label>
+        <select id="model" class="select"></select>
+      </div>
+
+      <div class="field">
+        <label for="duration">Длительность (секунды)</label>
+        <input type="number" id="duration" class="input" min="1" max="8" step="1" value="5">
+        <p class="hint">Модели генерируют короткие клипы — максимум ~5 секунд. Более длинная длительность будет обрезана до лимита модели.</p>
+      </div>
+
+      <div class="field">
+        <label>Разрешение</label>
+        <div class="check-group">
+          <label class="check"><input type="radio" name="resolution" value="832x480" checked> 832×480 (широкий — Wan)</label>
+          <label class="check"><input type="radio" name="resolution" value="480x480"> 480×480 (квадрат)</label>
+          <label class="check"><input type="radio" name="resolution" value="768x512"> 768×512 (средний — LTX)</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>FPS (кадров в секунду)</label>
+        <div class="check-group">
+          <label class="check"><input type="radio" name="fps" value="16" checked> 16</label>
+          <label class="check"><input type="radio" name="fps" value="25"> 25</label>
+          <label class="check"><input type="radio" name="fps" value="30"> 30</label>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="steps">Шаги генерации</label>
+        <input type="number" id="steps" class="input" min="4" max="60" step="1" value="20">
+        <p class="hint">Количество шагов денойзинга. Больше шагов — чище и детальнее картинка, но дольше генерация. 12–16 шагов — для быстрого черновика, 20–30 — нормальное качество.</p>
+      </div>
+
+      <div class="field">
+        <p class="hint" id="eta" style="font-weight:600;"></p>
+      </div>
+
+      <div class="actions">
+        <button id="btnCreate" class="btn btn-primary">Создать видео</button>
+      </div>
+    </section>
+
+    <section class="card" id="resultCard" style="display:none">
+      <h2>Результат</h2>
+      <p class="hint" id="status"></p>
+      <video id="video" controls style="width:100%; border-radius:8px; display:none;"></video>
+      <div class="err" id="error" style="display:none;"></div>
+    </section>
+  </main>
+
+  <script src="/static/video.js?v=2"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>

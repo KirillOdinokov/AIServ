@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Генерация изображений</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><i class="ico">🖼️</i> Генерация изображений</h1>
+    <div class="topbar-right">
+      <a class="btn btn-outline btn-sm" href="/files" title="Файловый менеджер">📁 Файлы</a>
+      <span class="status-dot"><span class="dot dot--on"></span> FLUX.2 Klein 4B</span>
+      <button class="pause-btn pause-btn--off" id="btnToggle" title="Остановить/возобновить генерацию"></button>
+      <button class="btn btn-outline btn-sm" id="btnRestart" title="Перезапустить сервер">↻ Перезапустить</button>
+      <button class="btn btn-outline-danger btn-sm" id="btnStop" title="Остановить сервер">⏻ Остановить</button>
+    </div>
+  </header>
+
+  <div class="hardware-bar" id="hardwareBar">
+    <span class="hw-item" id="hwCpu" title="Процессор">CPU: …</span>
+    <span class="hw-item" id="hwGpu" title="Видеокарта">GPU: …</span>
+    <span class="hw-item" id="hwRam" title="Оперативная память">RAM: …</span>
+    <span class="hw-item" id="hwSwap" title="Подкачка (swap)">SWAP: …</span>
+    <span class="hw-item" id="hwDisk" title="Диск">Диск: …</span>
+    <span class="hw-item" id="hwData" title="Второй диск /data (модели)">/data: …</span>
+    <span class="hw-item" id="hwNow" title="Модель в VRAM">В VRAM: …</span>
+    <span class="hw-item" id="hwFree" title="Время до завершения очереди">Free in: …</span>
+  </div>
+
+  <main class="page">
+    <section class="card upload">
+      <h2>Загрузить файл с промптами (изображения)</h2>
+      <p class="hint">
+        CSV. Колонки: <code>ID</code> (имя файла → <code>27235.png</code>), <code>prompt</code> (обязательно),
+        <code>aspect_ratio</code> (<code>1:1</code>, <code>4:3</code>, <code>16:9</code>, <code>9:16</code>…).
+      </p>
+      <form id="uploadForm">
+        <input type="file" id="csvFile" accept=".csv" required>
+        <button type="submit" class="btn btn-primary">Далее</button>
+        <a href="/single" class="btn btn-outline">✨ Генерация по единому промпту</a>
+        <a href="/video" class="btn btn-outline">🎬 Генерация видео</a>
+        <a href="/upscale" class="btn btn-outline">🔍 Upscale</a>
+      </form>
+    </section>
+
+    <section class="card upload">
+      <h2>Загрузить файл для создания текстов (описания товаров)</h2>
+      <p class="hint">
+        CSV. Колонки: <code>ID</code>, <code>post_title</code>, <code>post_excerpt</code>, <code>post_content</code>.
+        Если описания нет — данные будут найдены в интернете (DuckDuckGo).
+      </p>
+      <div class="field">
+        <label>Модель генерации текстов</label>
+        <select id="llmModel" class="select">
+          <option value="deepseek" selected>DeepSeek V4 Flash (API)</option>
+          <option value="ollama_cloud">Ollama Cloud — Qwen3.5 397B (подписка)</option>
+          <option value="local">Локальная модель (Ollama)</option>
+        </select>
+      </div>
+      <form id="llmUploadForm">
+        <input type="file" id="llmCsvFile" accept=".csv" required>
+        <button type="submit" class="btn btn-primary">Загрузить и запустить</button>
+      </form>
+    </section>
+
+    <section class="card upload">
+      <h2>Загрузить файл для генерации по референсам</h2>
+      <p class="hint">
+        CSV. Колонки: <code>post_title</code> (название), <code>ID</code>, <code>image</code> (URL картинки, опционально),
+        <code>type</code> (standart / storage / post_image / application / all_product).
+      </p>
+      <form id="refUploadForm">
+        <input type="file" id="refCsvFile" accept=".csv" required>
+        <button type="submit" class="btn btn-primary">Далее</button>
+        <a href="/thumbs" class="btn btn-outline">🧩 Генерация миниатюр</a>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Модели</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Модель</th>
+            <th>Статус</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="modelsBody"></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h2>Задачи</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Тип задачи</th>
+            <th>Файл</th>
+            <th>Модель</th>
+            <th>Прогресс</th>
+            <th>Осталось</th>
+            <th>Статус</th>
+            <th>Создано</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="jobsBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="/static/app.js?v=8"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>

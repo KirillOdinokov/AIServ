@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сопоставление колонок — Генерация по референсам</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><i class="ico">🖼️</i> Сопоставление колонок (референсы)</h1>
+  </header>
+
+  <main class="page page--narrow">
+    <section class="card">
+      <h2 id="mapTitle">Файл</h2>
+      <p class="hint">Сопоставьте колонки вашего CSV. Обязательна колонка с названием товара (title).</p>
+
+      <div id="fields"></div>
+
+      <details class="tutorial">
+        <summary class="tutorial-summary">📖 Что означает колонка «Тип изображения» (type)</summary>
+        <div class="tutorial-body">
+          <table class="table tutorial-table">
+            <thead><tr><th>Значение</th><th>Что получится</th></tr></thead>
+            <tbody>
+              <tr><td><code>standart</code></td><td>Товар на чистом белом фоне, студийное фото. Название сайта — на самом товаре (или в углу этикетки, если она есть)</td></tr>
+              <tr><td><code>storage</code></td><td>Товар на металлическом стеллаже склада. Название сайта — гравировкой на стеллаже, а не на товаре</td></tr>
+              <tr><td><code>post_image</code></td><td>Изображение для записи (не товар). Широкий кадр 21:9, название сайта на одном из объектов. Референс ищется в высоком разрешении</td></tr>
+              <tr><td><code>application</code></td><td>Применение товара строителями. Этикетка товара сохраняется, название сайта — только на каске или спецодежде рабочего</td></tr>
+              <tr><td><code>all_product</code></td><td>Сразу два изображения: storage + standart</td></tr>
+              <tr><td><em>пусто</em></td><td>По умолчанию — standart</td></tr>
+            </tbody>
+          </table>
+          <p class="hint">Если колонки type в CSV нет — оставьте поле несопоставленным, будет использован тип standart.</p>
+        </div>
+      </details>
+
+      <div class="actions">
+        <button id="btnCreate" class="btn btn-primary">Далее</button>
+        <a href="/" class="btn btn-outline">Отмена</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/ref_map.js?v=1"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>

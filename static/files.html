@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Файлы — FLUX</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .fm-breadcrumb { margin-bottom: 12px; font-size: .9rem; }
+    .fm-breadcrumb a { color: #0d6efd; text-decoration: none; }
+    .fm-toolbar { display:flex; gap:8px; margin-bottom:12px; }
+    .fm-table { width:100%; border-collapse: collapse; }
+    .fm-table th, .fm-table td { text-align:left; padding:6px 10px; border-bottom:1px solid #eee; }
+    .fm-table tr:hover { background:#f8f9fa; }
+    .fm-name { cursor:pointer; }
+    .fm-name.dir { color:#0d6efd; font-weight:600; }
+    .fm-size { color:#6c757d; font-size:.85rem; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <h1><a href="/" class="back">←</a> Файлы</h1>
+    <div class="actions"></div>
+  </header>
+
+  <main class="page">
+    <section class="card">
+      <div class="fm-breadcrumb" id="breadcrumb"></div>
+      <div class="fm-toolbar">
+        <button class="btn btn-outline btn-sm" id="btnUp">↑ Вверх</button>
+        <button class="btn btn-outline btn-sm" id="btnZip">🗜 Скачать папку (ZIP)</button>
+        <button class="btn btn-outline btn-sm" id="btnRefresh">↻ Обновить</button>
+      </div>
+      <table class="fm-table">
+        <thead><tr><th>Имя</th><th>Размер</th><th></th></tr></thead>
+        <tbody id="fmBody"></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="/static/files.js?v=1"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+[Unit]
+Description=Server stats monitor (CPU/GPU/RAM/VRAM sampler)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/kirill/flux
+ExecStart=/home/kirill/flux/.venv/bin/python /home/kirill/flux/stats_monitor.py
+Restart=always
+RestartSec=5
+User=kirill
+
+[Install]
+WantedBy=multi-user.target

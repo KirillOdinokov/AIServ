@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Сопоставление колонок — Генерация изображений</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1><i class="ico">🖼️</i> Сопоставление колонок</h1>
+  </header>
+
+  <main class="page page--narrow">
+    <section class="card">
+      <h2 id="mapTitle">Файл</h2>
+      <p class="hint">Сопоставьте колонки вашего CSV с ожидаемыми полями. Обязательно только <code>prompt</code>.</p>
+
+      <div id="fields"></div>
+
+      <div class="field">
+        <label for="logoFile">Логотип-референс (опционально)</label>
+        <input type="file" id="logoFile" accept=".png,.jpg,.jpeg,.webp">
+        <p class="hint">Если задан — модель встроит этот логотип в каждое изображение. В промте укажите, куда его нанести (например: «нанеси лого на спецодежду рабочего»).</p>
+      </div>
+
+      <div class="actions">
+        <button id="btnCreate" class="btn btn-primary">Далее</button>
+        <a href="/" class="btn btn-outline">Отмена</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/map.js?v=2"></script>
+  <script src="/static/status_bar.js?v=1"></script>
+</body>
+</html>
