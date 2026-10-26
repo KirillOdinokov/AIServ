@@ -84,18 +84,18 @@
             <div class="role">Администратор</div>
           </div>
         </div>
-        <div class="d-grid gap-1 sidebar-controls">
-          <button class="btn btn-sm btn-outline-secondary" id="btnToggle" title="Пауза / возобновить генерацию">
-            <i class="ti ti-player-pause" id="btnToggleIcon"></i> <span id="btnToggleLabel">Пауза</span>
+        <div class="sidebar-controls">
+          <button class="sidebar-ctrl" id="btnToggle" title="Пауза / возобновить генерацию">
+            <i class="ti ti-player-pause" id="btnToggleIcon"></i>
           </button>
-          <button class="btn btn-sm btn-outline-secondary" id="btnSoftReset" title="Перезапустить веб-приложение">
-            <i class="ti ti-refresh"></i> Soft Reset
+          <button class="sidebar-ctrl" id="btnSoftReset" title="Soft Reset — перезапуск веб-приложения">
+            <i class="ti ti-refresh"></i>
           </button>
-          <button class="btn btn-sm btn-outline-warning" id="btnHardReset" title="Полная перезагрузка сервера">
-            <i class="ti ti-bolt"></i> Hard Reset
+          <button class="sidebar-ctrl sidebar-ctrl--warn" id="btnHardReset" title="Hard Reset — перезагрузка сервера">
+            <i class="ti ti-bolt"></i>
           </button>
-          <button class="btn btn-sm btn-outline-danger" id="btnStop" title="Остановить сервер">
-            <i class="ti ti-power"></i> Стоп
+          <button class="sidebar-ctrl sidebar-ctrl--danger" id="btnStop" title="Стоп — остановить сервер (flux + ComfyUI + Ollama)">
+            <i class="ti ti-power"></i>
           </button>
         </div>
         <a href="#" class="logout-link" id="btnLogout">Выйти</a>

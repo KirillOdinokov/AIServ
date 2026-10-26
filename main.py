@@ -419,17 +419,18 @@ def server_restart():
 
 @app.post("/api/server/stop")
 def server_stop():
-    """Полностью остановить сервер (uvicorn + ComfyUI + прокси)."""
-    import os as _os
+    """Остановить сервер полностью (flux + ComfyUI + Ollama)."""
+    import subprocess
     import threading
 
     def _do():
         import time
         time.sleep(1)
-        _os._exit(0)
+        subprocess.run(["sudo", "systemctl", "stop", "comfy", "ollama"], check=False)
+        subprocess.run(["sudo", "systemctl", "stop", "flux"], check=False)
 
     threading.Thread(target=_do, daemon=True).start()
-    return {"ok": True, "message": "Остановка..."}
+    return {"ok": True, "message": "Остановка сервера..."}
 
 
 @app.post("/api/server/hard-reset")

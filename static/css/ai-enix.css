@@ -188,15 +188,41 @@ header.navbar {
 }
 .sidebar-user .name { color: #ffffff; font-weight: 600; line-height: 1.1; }
 .sidebar-user .role { color: #999999; font-size: .75rem; }
-.sidebar-controls .btn { justify-content: flex-start; }
-.sidebar-controls .btn-outline-secondary { color: #999999; border-color: #333333; }
-.sidebar-controls .btn-outline-secondary:hover { color: #ffffff; background: #1a1a1a; border-color: #444444; }
-.sidebar-controls .btn-outline-warning { color: #f59f00; border-color: #5a3d00; }
-.sidebar-controls .btn-outline-warning:hover { color: #000000; background: #f59f00; border-color: #f59f00; }
-.sidebar-controls .btn-outline-danger { color: #d60b0b; border-color: #5a0b0b; }
-.sidebar-controls .btn-outline-danger:hover { color: #ffffff; background: #d60b0b; border-color: #d60b0b; }
+.sidebar-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+.sidebar-ctrl {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid #333333;
+  background: #121212;
+  color: #999999;
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: all .15s;
+}
+.sidebar-ctrl:hover { color: #ffffff; background: #1f1f1f; border-color: #444444; }
+.sidebar-ctrl--warn { color: #f59f00; border-color: #5a3d00; }
+.sidebar-ctrl--warn:hover { color: #000000; background: #f59f00; border-color: #f59f00; }
+.sidebar-ctrl--danger { color: #d60b0b; border-color: #5a0b0b; }
+.sidebar-ctrl--danger:hover { color: #ffffff; background: #d60b0b; border-color: #d60b0b; }
 .logout-link { display: block; text-align: center; margin-top: 10px; color: #999999; text-decoration: none; font-size: .85rem; }
 .logout-link:hover { color: #ffffff; }
+
+/* Меню прокручивается, футер всегда прижат к низу и не перекрывает пункты */
+.navbar-vertical .navbar-collapse {
+  flex: 1 1 0 !important;
+  min-height: 0;
+  overflow-y: auto;
+}
+.navbar-vertical .sidebar-footer { flex: 0 0 auto; }
 
 @media (min-width: 992px) {
   .navbar-vertical { height: 100vh; }
