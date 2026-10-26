@@ -191,7 +191,43 @@ OCR сканов (vision-модель) → плагин сайтов + очер�
 загрузка каталогов). Чат стартует на DeepSeek API (не локальная LLM), чтобы не
 конфликтовать с GPU генерации.
 
-## Железо (план апгрейда, в процессе)
+## Железо (актуально)
 
-3×512 SSD: 2 в RAID 1 (система + PostgreSQL), 1 под модели. 1TB HDD под бэкапы
-(версии) + реплика на NAS почаще. RAM → 64GB. RAID — программный mdadm.
+RAM 45 GiB (апгрейд выполнен). Диски: `/` 256GB SSD (sdd, 232G LVM),
+`/data` 512GB SSD (sdc, модели), второй 512GB SSD (sdb) пуст — под RAID1,
+1TB HDD (sda) пуст — под бэкапы. RAID (mdadm) и бэкапы — настроить в офисе.
+GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark hold`).
+
+## Git (репозиторий проекта)
+
+- Remote: `git@github.com:KirillOdinokov/AIServ.git` (публичный), ветка `main`.
+- Рабочая копия: Windows `E:\Оптимизация\LOCAL FLUX` (источник); деплой на сервер
+  позже через `git pull` (сервер `/home/kirill/flux`).
+- SSH deploy key: `~/.ssh/aiserv_deploy` (ed25519); в git настроен
+  `core.sshCommand` (ключ + `known_hosts` по короткому пути `C:/Users/C523~1/...`).
+- `.gitignore` исключает: `*_token.txt`, `.env`, `SSH_access.txt`, `access.txt`,
+  `_*.py` (скретч с паролем), `jobs*.json`, `llm_jobs.json*`, `output/`,
+  `models/`, `ComfyUI/`, `.venv/`, `__pycache__/`, логи, `example_prices/`.
+- Секреты — в `.env` (gitignored), шаблон `.env.example`. `config.py` грузит
+  `.env`; `main.py` берёт `FLUX_PASSWORD` из окружения (дефолта больше нет).
+- Процесс: правки → `git add` → `git commit` → `git push` (из Windows).
+
+## Сервис «База» (план, следующая фаза)
+
+- Отдельный сервис `base` (FastAPI `:8001`, systemd `base.service`), PostgreSQL 18
+  + pgvector + pg_trgm, поддомен `ai.enix.ru` → 109.95.77.86, nginx SNI на 10443,
+  Let's Encrypt. Каталог `/home/kirill/flux/base/`.
+- Данные: товары (SKU, логистика), сайты (WC-ключи), поставщики, прайсы,
+  история цен, ревью-очередь, `mapping_memory`, email, `site_updates`, RAG.
+- Матчинг: нормализация → exact/trgm/pgvector(bge-m3) → LLM-арбитраж;
+  ≥0.95 авто, 0.5–0.95 на утверждение (письмо Да/Нет), <0.5 ручное картирование.
+- Сайты: MVP — WooCommerce REST (`wp_publish.WpClient`), затем WP-плагин
+  (pull `/api/base/v1/prices` + ack). Старт: stekltkani.ru, promtexizol.ru.
+- ИИ-чат (плагин `odinokov-ai-chat`) → через Базу, единый ключ DeepSeek, RAG
+  документов (PDF/DOCX/XLSX) + история; внутренняя страница чата сотрудников.
+- Режимы: 08–19 пн–пт — чат (DeepSeek, без GPU) + интерактивная генерация;
+  19–08 + выходные — batch прайсов (локальный Qwen) → затем очередь картинок.
+- Канонический SKU: искать в прайсе; если артикул есть и совпал на сайте —
+  обновлять по нему (кэшировать), иначе синхронизировать по названиям; изначально
+  заносить канонические артикулы с сайтов. Объём: ~300k товаров, 0.5–10k/мес.
+- Email: `price@enix.ooo` (Beget, IMAP/SMTP). Примеры прайсов: `example_prices/`.
