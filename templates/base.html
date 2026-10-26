@@ -13,7 +13,7 @@
 <body>
 <div class="page">
   <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
-    <div class="container-fluid">
+    <div class="container-fluid d-flex flex-column h-100">
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu" aria-controls="sidebar-menu" aria-expanded="false" aria-label="Меню">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -22,7 +22,7 @@
           <img src="/static/img/logo-light.png" alt="AI ENIX" class="sidebar-logo">
         </a>
       </h1>
-      <div class="collapse navbar-collapse" id="sidebar-menu">
+      <div class="collapse navbar-collapse flex-grow-1" id="sidebar-menu">
         <ul class="navbar-nav pt-lg-3">
           <li class="nav-item {% if active == 'dashboard' %}active{% endif %}">
             <a class="nav-link" href="/">
@@ -75,32 +75,38 @@
           </li>
         </ul>
       </div>
+
+      <div class="sidebar-footer mt-auto">
+        <div class="sidebar-user">
+          <span class="avatar avatar-sm" style="background:#d60b0b;color:#fff;">K</span>
+          <div>
+            <div class="name">kirill</div>
+            <div class="role">Администратор</div>
+          </div>
+        </div>
+        <div class="d-grid gap-1 sidebar-controls">
+          <button class="btn btn-sm btn-outline-secondary" id="btnToggle" title="Пауза / возобновить генерацию">
+            <i class="ti ti-player-pause" id="btnToggleIcon"></i> <span id="btnToggleLabel">Пауза</span>
+          </button>
+          <button class="btn btn-sm btn-outline-secondary" id="btnSoftReset" title="Перезапустить веб-приложение">
+            <i class="ti ti-refresh"></i> Soft Reset
+          </button>
+          <button class="btn btn-sm btn-outline-warning" id="btnHardReset" title="Полная перезагрузка сервера">
+            <i class="ti ti-bolt"></i> Hard Reset
+          </button>
+          <button class="btn btn-sm btn-outline-danger" id="btnStop" title="Остановить сервер">
+            <i class="ti ti-power"></i> Стоп
+          </button>
+        </div>
+        <a href="#" class="logout-link" id="btnLogout">Выйти</a>
+      </div>
     </div>
   </aside>
 
   <div class="page-wrapper">
     <header class="navbar navbar-expand-md d-print-none">
       <div class="container-xl">
-        <div class="navbar-nav flex-row order-md-last">
-          <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-outline-secondary btn-sm" id="btnToggle" title="Пауза / возобновить генерацию">⏸</button>
-            <button class="btn btn-outline-secondary btn-sm" id="btnRestart" title="Перезапустить веб-сервер">↻</button>
-            <button class="btn btn-outline-danger btn-sm" id="btnStop" title="Остановить сервер">⏻</button>
-            <div class="dropdown">
-              <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Меню пользователя">
-                <span class="avatar avatar-sm" style="background:#d60b0b;color:#fff;">K</span>
-                <div class="d-none d-xl-block ps-2">
-                  <div>kirill</div>
-                  <div class="mt-1 small text-secondary">Администратор</div>
-                </div>
-              </a>
-              <div class="dropdown-menu dropdown-menu-end">
-                <a href="#" class="dropdown-item" id="btnLogout">Выйти</a>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="navbar-nav flex-row order-md-first">
+        <div class="navbar-nav flex-row w-100">
           <div class="hardware-bar" id="hardwareBar">
             <span class="hw-item" id="hwCpu">CPU: …</span>
             <span class="hw-item" id="hwGpu">GPU: …</span>

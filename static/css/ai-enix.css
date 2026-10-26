@@ -102,18 +102,26 @@ header.navbar {
 }
 .hardware-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0;
   padding: 6px 0;
   font-size: .82rem;
   color: #000000;
+  white-space: nowrap;
+  overflow-x: auto;
+  max-width: 100%;
 }
 .hw-item {
   white-space: nowrap;
-  padding: 3px 8px;
-  border: 1px solid #dddddd;
-  border-radius: 4px;
-  background: #fafafa;
+  border: none;
+  background: none;
+  padding: 0;
+}
+.hw-item:not(:last-child)::after {
+  content: "|";
+  color: #cccccc;
+  margin: 0 10px;
 }
 .status-dot { display: inline-flex; align-items: center; gap: 6px; }
 .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #999999; }
@@ -166,6 +174,34 @@ header.navbar {
   margin: 0 auto;
 }
 .login-logo { max-width: 300px; height: auto; }
+
+/* ── Низ сайдбара: аккаунт и управление сервером ───────────────────────── */
+.sidebar-footer {
+  border-top: 1px solid #1f1f1f;
+  padding: 14px 12px 16px;
+}
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.sidebar-user .name { color: #ffffff; font-weight: 600; line-height: 1.1; }
+.sidebar-user .role { color: #999999; font-size: .75rem; }
+.sidebar-controls .btn { justify-content: flex-start; }
+.sidebar-controls .btn-outline-secondary { color: #999999; border-color: #333333; }
+.sidebar-controls .btn-outline-secondary:hover { color: #ffffff; background: #1a1a1a; border-color: #444444; }
+.sidebar-controls .btn-outline-warning { color: #f59f00; border-color: #5a3d00; }
+.sidebar-controls .btn-outline-warning:hover { color: #000000; background: #f59f00; border-color: #f59f00; }
+.sidebar-controls .btn-outline-danger { color: #d60b0b; border-color: #5a0b0b; }
+.sidebar-controls .btn-outline-danger:hover { color: #ffffff; background: #d60b0b; border-color: #d60b0b; }
+.logout-link { display: block; text-align: center; margin-top: 10px; color: #999999; text-decoration: none; font-size: .85rem; }
+.logout-link:hover { color: #ffffff; }
+
+@media (min-width: 992px) {
+  .navbar-vertical { height: 100vh; }
+  .navbar-vertical .container-fluid { height: 100%; }
+}
 
 /* ── Аналоговые спидометры (Статус сервера) ─────────────────────────────── */
 .ai-gauge {

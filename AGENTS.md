@@ -167,6 +167,10 @@ static/            — веб-интерфейс
   старых `static/*.html` (переводятся постепенно).
 - API дашборда: `/api/stats/history?period=hour|day|week` (агрегация
   `stats_history.jsonl`, кэш 60с), `/api/server/status`, `/api/server/logs`.
+- Шапка: статусная строка в одну линию (`|`-разделители, без рамок). Низ sidebar:
+  аккаунт + контролы. **Soft Reset** = `/api/server/restart` (uvicorn);
+  **Hard Reset** = `sudo systemctl reboot` → `/api/server/hard-reset` (полная
+  перезагрузка сервера, двойное подтверждение; не вызывать без нужды).
 - **Готчас:** Starlette **1.6** — `TemplateResponse(request, name, context)`
   (старый `TemplateResponse(name, {"request": ...})` даёт 500).
 

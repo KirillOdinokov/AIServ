@@ -432,6 +432,21 @@ def server_stop():
     return {"ok": True, "message": "Остановка..."}
 
 
+@app.post("/api/server/hard-reset")
+def server_hard_reset():
+    """Перезагрузить сервер (hard reset)."""
+    import subprocess
+    import threading
+
+    def _do():
+        import time
+        time.sleep(1)
+        subprocess.run(["sudo", "systemctl", "reboot"], check=False)
+
+    threading.Thread(target=_do, daemon=True).start()
+    return {"ok": True, "message": "Перезагрузка сервера..."}
+
+
 # ─── Страницы ────────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
