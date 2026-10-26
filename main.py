@@ -496,18 +496,18 @@ def llm_result_page(job_id: str, request: Request):
 
 
 @app.get("/ref/configure/{job_id}", response_class=HTMLResponse)
-def ref_configure_page(job_id: str):
-    return FileResponse(STATIC_DIR / "ref_configure.html")
+def ref_configure_page(job_id: str, request: Request):
+    return templates.TemplateResponse(request, "ref_configure.html", {"active": "refs"})
 
 
 @app.get("/ref/map/{upload_id}", response_class=HTMLResponse)
-def ref_map_page(upload_id: str):
-    return FileResponse(STATIC_DIR / "ref_map.html")
+def ref_map_page(upload_id: str, request: Request):
+    return templates.TemplateResponse(request, "ref_map.html", {"active": "refs"})
 
 
 @app.get("/ref/result/{job_id}", response_class=HTMLResponse)
-def ref_result_page(job_id: str):
-    return FileResponse(STATIC_DIR / "ref_result.html")
+def ref_result_page(job_id: str, request: Request):
+    return templates.TemplateResponse(request, "ref_result.html", {"active": "refs"})
 
 
 @app.get("/thumbs", response_class=HTMLResponse)
@@ -2725,8 +2725,8 @@ def video_get(job_id: str):
 # ─── Публикация на WordPress / WooCommerce ───────────────────────────────────
 
 @app.get("/publish/{job_id}", response_class=HTMLResponse)
-def publish_page(job_id: str):
-    return FileResponse(STATIC_DIR / "publish.html")
+def publish_page(job_id: str, request: Request):
+    return templates.TemplateResponse(request, "publish.html", {"active": "tasks"})
 
 
 @app.post("/api/publish/{job_id}/test")

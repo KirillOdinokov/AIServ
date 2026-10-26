@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Референсы: настройка{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title" id="jobTitle">Генерация по референсам</h2>
+      <div class="text-secondary mt-1" id="jobFile"></div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3" style="max-width:820px;">
+  <div class="card-body">
+    <div class="mb-3">
+      <label class="form-label" for="siteName">Название сайта (вшивается в изображение)</label>
+      <input type="text" id="siteName" class="form-control" placeholder="например: stroy-mag.ru">
+      <div class="form-hint">Наносится на товар / этикетку / спецодежду в зависимости от типа изображения.</div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-check">
+        <input class="form-check-input" type="checkbox" id="chkWatermark">
+        <span class="form-check-label">Режим Watermark — картинка как исходная, без водяного знака и без нанесения сайта</span>
+      </label>
+      <div class="form-hint">Не добавляет наклейки/этикетки/бренд. Изображение повторяет исходное, но без водяных знаков.</div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label" for="overlayFile">PNG-водяной знак (накладывается поверх, по центру)</label>
+      <input type="file" id="overlayFile" class="form-control" accept=".png">
+      <div class="form-hint" id="overlayStatus">Опционально. Полупрозрачный PNG со шрифтом/логотипом.</div>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Режим генерации</label>
+      <label class="form-check">
+        <input class="form-check-input" type="checkbox" id="modeMultimodal" value="multimodal">
+        <span class="form-check-label">multimodal (klein)</span>
+      </label>
+      <div class="form-hint">Генерация по референсу выполняется моделью FLUX.2 Klein.</div>
+    </div>
+
+    <div class="mb-3" id="copiesMultimodal" style="display:none">
+      <label class="form-label" for="copiesKlein">Копий (klein)</label>
+      <input type="number" id="copiesKlein" class="form-control" min="1" max="9" step="1" value="1" style="max-width:160px;">
+    </div>
+
+    <div class="d-flex gap-2">
+      <button id="btnRun" class="btn btn-primary">Запустить генерацию</button>
+      <a href="/tasks" class="btn btn-outline-secondary">Отмена</a>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="max-width:820px;">
+  <div class="card-body">
+    <details>
+      <summary class="fw-bold" style="cursor:pointer;">Инструкция: как работает генерация по референсам</summary>
+      <div class="mt-3 text-secondary">
+        <h4>1. Что делает режим</h4>
+        <p>По каждому товару берётся картинка-референс и на её основе генерируется новое изображение с вашим брендом. Готовые картинки сохраняются на диск — на сайт автоматически не загружаются.</p>
+        <h4>2. CSV</h4>
+        <table class="table table-sm table-vcenter">
+          <thead><tr><th>Колонка</th><th>Обязательно</th><th>Что указывать</th></tr></thead>
+          <tbody>
+            <tr><td><code>post_title</code></td><td>Да</td><td>Название товара (или записи при type=post_image)</td></tr>
+            <tr><td><code>ID</code></td><td>Желательно</td><td>ID товара — в имени выходного файла</td></tr>
+            <tr><td><code>image</code></td><td>Нет</td><td>Прямая ссылка на референс; если пусто — найдётся автоматически</td></tr>
+            <tr><td><code>type</code></td><td>Нет</td><td>Тип изображения (по умолчанию standart)</td></tr>
+          </tbody>
+        </table>
+        <h4>3. Типы изображений</h4>
+        <p><code>standart</code> — товар на белом фоне; <code>storage</code> — на стеллаже склада; <code>post_image</code> — широкий кадр для записи; <code>application</code> — применение строителями; <code>all_product</code> — storage + standart.</p>
+        <h4>4. Откуда берётся референс</h4>
+        <p>Если в <code>image</code> указана ссылка — используется она; иначе картинка ищется автоматически по названию (DuckDuckGo, самое крупное изображение).</p>
+        <h4>5. Результат</h4>
+        <p>После генерации выберите картинки и нажмите «Сохранить выбранные». Файлы появятся в <code>images/png/</code> (исходники) и <code>images/webp/</code> (готовые).</p>
+      </div>
+    </details>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/ref_configure.js?v=2"></script>
+{% endblock %}

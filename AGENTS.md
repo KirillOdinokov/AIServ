@@ -163,8 +163,8 @@ static/            — веб-интерфейс
   (v3.49), `static/vendor/apexcharts`; бренд-стили — `static/css/ai-enix.css`.
 - Бренд: акцент `#d60b0b`, фон белый, шрифт Roboto Condensed; sidebar/футер чёрные
   (`#000`), заголовки `#fff`, текст `#999`, рамки/фоны `#dddddd`.
-- Роуты: `/` (дашборд), `/tasks`, `/server`, `/base`; остальные страницы пока на
-  старых `static/*.html` (переводятся постепенно).
+- Все страницы переведены на Tabler: шаблоны в `templates/`, JS в `static/js/`.
+  Старые `static/*.html` и `static/*.js` больше не используются.
 - API дашборда: `/api/stats/history?period=hour|day|week` (агрегация
   `stats_history.jsonl`, кэш 60с), `/api/server/status`, `/api/server/logs`.
 - Шапка: статусная строка в одну линию (`|`-разделители, без рамок). Низ sidebar:

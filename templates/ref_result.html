@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Референсы: результат{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title" id="jobTitle">Задача</h2>
+      <div class="text-secondary mt-1">Генерация по референсам</div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-3 align-items-center mb-2">
+      <span id="jobStatus" class="badge bg-secondary-lt">—</span>
+      <span id="jobEta" class="text-secondary"></span>
+      <span id="jobCounts" class="text-secondary"></span>
+    </div>
+    <div class="progress progress-sm"><div class="progress-bar" id="progressFill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div class="card mb-3" id="approveBar">
+  <div class="card-body d-flex flex-wrap gap-2 align-items-center justify-content-between">
+    <span class="text-secondary" id="approveCount"></span>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <button class="btn btn-outline-secondary btn-sm" id="btnSelectAll">Выбрать всё</button>
+      <button class="btn btn-primary btn-sm" id="btnApprove">Сохранить выбранные</button>
+      <span class="text-secondary" id="finalizeStatus" style="display:none;"></span>
+    </div>
+  </div>
+</div>
+
+<div id="itemsList"></div>
+
+<div class="ai-lightbox" id="lightbox">
+  <button class="ai-lightbox-close" id="lightboxClose">&times;</button>
+  <button class="ai-lightbox-prev" id="lightboxPrev">&#10094;</button>
+  <img class="ai-lightbox-img" id="lightboxImg" src="" alt="">
+  <button class="ai-lightbox-next" id="lightboxNext">&#10095;</button>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/ref_result.js?v=9"></script>
+{% endblock %}

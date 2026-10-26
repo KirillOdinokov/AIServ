@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Референсы: сопоставление{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Сопоставление колонок (референсы)</h2>
+      <div class="text-secondary mt-1" id="mapTitle">Файл</div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="max-width:860px;">
+  <div class="card-body">
+    <p class="text-secondary">Сопоставьте колонки вашего CSV. Обязательна колонка с названием товара (title).</p>
+    <div id="fields"></div>
+
+    <details class="mb-3">
+      <summary class="fw-bold" style="cursor:pointer;">Что означает колонка «Тип изображения» (type)</summary>
+      <div class="table-responsive mt-2">
+        <table class="table table-sm table-vcenter">
+          <thead><tr><th>Значение</th><th>Что получится</th></tr></thead>
+          <tbody>
+            <tr><td><code>standart</code></td><td>Товар на чистом белом фоне, студийное фото. Название сайта — на самом товаре (или в углу этикетки).</td></tr>
+            <tr><td><code>storage</code></td><td>Товар на металлическом стеллаже склада. Название сайта — гравировкой на стеллаже.</td></tr>
+            <tr><td><code>post_image</code></td><td>Изображение для записи (не товар). Широкий кадр 21:9, название сайта на одном из объектов.</td></tr>
+            <tr><td><code>application</code></td><td>Применение товара строителями. Этикетка сохраняется, название сайта — на каске/спецодежде.</td></tr>
+            <tr><td><code>all_product</code></td><td>Сразу два изображения: storage + standart.</td></tr>
+            <tr><td><em>пусто</em></td><td>По умолчанию — standart.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="text-secondary mt-2 mb-0">Если колонки type в CSV нет — будет использован тип standart.</p>
+    </details>
+
+    <div class="d-flex gap-2">
+      <button id="btnCreate" class="btn btn-primary">Далее</button>
+      <a href="/tasks" class="btn btn-outline-secondary">Отмена</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/ref_map.js?v=2"></script>
+{% endblock %}

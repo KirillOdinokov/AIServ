@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Публикация{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title" id="pageTitle">Публикация изображений</h2>
+      <div class="text-secondary mt-1">WordPress / WooCommerce</div>
+    </div>
+    <div class="col-auto ms-auto" id="jobActions"></div>
+  </div>
+</div>
+
+<div class="row row-cards">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Доступы к сайту</h3></div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label" for="site">Адрес сайта</label>
+          <input type="text" id="site" class="form-control" placeholder="https://example.com">
+        </div>
+        <p class="text-secondary">
+          Тип объекта (товар / категория / запись / рубрика) определяется автоматически по ID из имени файла.
+          Файлы вида <code>ID-N.webp</code> — дополнительные изображения товара <code>ID</code>.
+        </p>
+        <div class="mb-2">
+          <label class="form-check">
+            <input class="form-check-input" type="checkbox" id="insertInContent">
+            <span class="form-check-label">Вставлять изображение в текст записи (после абзаца в середине статьи)</span>
+          </label>
+        </div>
+        <div class="mb-3">
+          <label class="form-check">
+            <input class="form-check-input" type="checkbox" id="replaceMain">
+            <span class="form-check-label">Заменять основное изображение товара (иначе — добавлять как дополнительное)</span>
+          </label>
+        </div>
+        <div class="mb-3">
+          <label class="form-label" for="imgClass">CSS-класс для вставленного изображения (опционально)</label>
+          <input type="text" id="imgClass" class="form-control" placeholder="например: article-img">
+        </div>
+
+        <h4 class="mb-2">WordPress (Application Password)</h4>
+        <div class="row">
+          <div class="col-md-5 mb-3">
+            <label class="form-label" for="wpUser">Логин</label>
+            <input type="text" id="wpUser" class="form-control" placeholder="admin">
+          </div>
+          <div class="col-md-7 mb-3">
+            <label class="form-label" for="wpPassword">Application Password</label>
+            <input type="password" id="wpPassword" class="form-control" placeholder="xxxx xxxx xxxx xxxx">
+          </div>
+        </div>
+
+        <h4 class="mb-2">WooCommerce (REST API)</h4>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="wcKey">Consumer Key</label>
+            <input type="text" id="wcKey" class="form-control" placeholder="ck_...">
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="wcSecret">Consumer Secret</label>
+            <input type="text" id="wcSecret" class="form-control" placeholder="cs_...">
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary" id="btnTest">Проверить доступ</button>
+          <button class="btn btn-primary" id="btnPublish">Опубликовать</button>
+        </div>
+        <div id="testResult" class="text-secondary mt-2"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Результаты</h3></div>
+      <div class="card-body">
+        <div id="publishProgress" class="text-secondary"></div>
+        <div id="publishResults" class="mt-2"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/publish.js?v=4"></script>
+{% endblock %}
