@@ -1,6 +1,6 @@
 # Миграция на Linux-сервер (Ubuntu)
 
-Перевод FLUX Image Generator + Ollama с Windows на выделенный Ubuntu-сервер.
+Перевод AI ENIX + Ollama с Windows на выделенный Ubuntu-сервер.
 
 ## Архитектура
 
@@ -98,7 +98,7 @@ scp -r config.py generator.py task_queue.py store.py main.py \
 ```bash
 sudo tee /etc/systemd/system/flux.service > /dev/null <<EOF
 [Unit]
-Description=FLUX Image Generator
+Description=AI ENIX
 After=network.target ollama.service
 
 [Service]

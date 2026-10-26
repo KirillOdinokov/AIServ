@@ -31,7 +31,7 @@ import image_search
 from upscale_store import upscale_store, UpscaleBatch, UpscaleItem
 from generator import generator
 
-app = FastAPI(title="FLUX Image Generator")
+app = FastAPI(title="AI ENIX")
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
