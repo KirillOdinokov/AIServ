@@ -8,6 +8,7 @@ SSH_access.txt
 access.txt
 .env
 .env.*
+!.env.example
 
 # ─── Рантайм-состояние / данные ─────────────────────────────────────────────
 jobs.json
