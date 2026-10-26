@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Сопоставление колонок{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Сопоставление колонок</h2>
+      <div class="text-secondary mt-1" id="mapTitle">Файл</div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="max-width:760px;">
+  <div class="card-body">
+    <p class="text-secondary">
+      Сопоставьте колонки вашего CSV с ожидаемыми полями. Обязательно только <code>prompt</code>.
+    </p>
+    <div id="fields"></div>
+    <div class="mb-3">
+      <label class="form-label" for="logoFile">Логотип-референс (опционально)</label>
+      <input type="file" id="logoFile" class="form-control" accept=".png,.jpg,.jpeg,.webp">
+      <div class="form-hint">
+        Если задан — модель встроит этот логотип в каждое изображение. В промпте укажите, куда его нанести
+        (например: «нанеси лого на спецодежду рабочего»).
+      </div>
+    </div>
+    <div class="d-flex gap-2">
+      <button id="btnCreate" class="btn btn-primary">Далее</button>
+      <a href="/tasks" class="btn btn-outline-secondary">Отмена</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/map.js?v=2"></script>
+{% endblock %}

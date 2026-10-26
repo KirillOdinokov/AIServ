@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Настройка задачи{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title" id="jobTitle">Настройка задачи</h2>
+      <div class="text-secondary mt-1" id="jobFile"></div>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="max-width:760px;">
+  <div class="card-body">
+    <div class="mb-3">
+      <label class="form-label">Модель</label>
+      <div id="modelOptions" class="d-flex flex-wrap gap-2"></div>
+      <div class="form-hint">Итог на промпт = выбранные модели × варианты.</div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="variants">Вариантов на промпт</label>
+      <select id="variants" class="form-select">
+        <option value="1" selected>1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+    </div>
+    <div class="mb-3">
+      <label class="form-label" for="refMode">Референс (поиск картинки и генерация по ней)</label>
+      <select id="refMode" class="form-select">
+        <option value="none" selected>Без референса (обычная генерация)</option>
+        <option value="img2img">img2img — переработка найденной картинки</option>
+        <option value="multimodal">multimodal — «по мотивам» референса</option>
+      </select>
+      <div class="form-hint">По умолчанию ищет картинку по промпту в DuckDuckGo.</div>
+    </div>
+    <div class="mb-3" id="strengthField" style="display:none">
+      <label class="form-label" for="strength">Сила переработки (img2img): <span id="strengthVal">0.7</span></label>
+      <input type="range" id="strength" class="form-range" min="0.1" max="1" step="0.05" value="0.7">
+      <div class="form-hint">Меньше = ближе к исходной картинке, больше = свободнее.</div>
+    </div>
+    <div class="d-flex gap-2">
+      <button id="btnRun" class="btn btn-primary">Запустить генерацию</button>
+      <a href="/tasks" class="btn btn-outline-secondary">Отмена</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/configure.js?v=2"></script>
+{% endblock %}

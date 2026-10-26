@@ -291,3 +291,27 @@ header.navbar {
   .hw-item { padding: 2px 6px; }
   .sidebar-logo { max-width: 140px; }
 }
+
+/* ── Лайтбокс (результаты пакетной генерации) ──────────────────────────── */
+.ai-lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0, 0, 0, .9);
+  align-items: center;
+  justify-content: center;
+}
+.ai-lightbox.show { display: flex; }
+.ai-lightbox-img { max-width: 92vw; max-height: 88vh; object-fit: contain; }
+.ai-lightbox-close, .ai-lightbox-prev, .ai-lightbox-next {
+  position: absolute;
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 2.5rem;
+  cursor: pointer;
+}
+.ai-lightbox-close { top: 16px; right: 24px; }
+.ai-lightbox-prev { left: 24px; top: 50%; transform: translateY(-50%); }
+.ai-lightbox-next { right: 24px; top: 50%; transform: translateY(-50%); }

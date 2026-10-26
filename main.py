@@ -471,18 +471,18 @@ def base_page(request: Request):
 
 
 @app.get("/configure/{job_id}", response_class=HTMLResponse)
-def configure_page(job_id: str):
-    return FileResponse(STATIC_DIR / "configure.html")
+def configure_page(job_id: str, request: Request):
+    return templates.TemplateResponse(request, "configure.html", {"active": "tasks"})
 
 
 @app.get("/map/{upload_id}", response_class=HTMLResponse)
-def map_page(upload_id: str):
-    return FileResponse(STATIC_DIR / "map.html")
+def map_page(upload_id: str, request: Request):
+    return templates.TemplateResponse(request, "map.html", {"active": "tasks"})
 
 
 @app.get("/result/{job_id}", response_class=HTMLResponse)
-def result_page(job_id: str):
-    return FileResponse(STATIC_DIR / "result.html")
+def result_page(job_id: str, request: Request):
+    return templates.TemplateResponse(request, "result.html", {"active": "tasks"})
 
 
 @app.get("/llm", response_class=HTMLResponse)
