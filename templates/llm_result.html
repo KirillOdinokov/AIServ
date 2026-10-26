@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Результат{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title" id="jobTitle">Задача</h2>
+      <div class="text-secondary mt-1">Описания товаров</div>
+    </div>
+    <div class="col-auto ms-auto">
+      <a class="btn btn-primary" id="btnExport" href="#">Скачать CSV</a>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex flex-wrap gap-3 align-items-center mb-2">
+      <span id="jobStatus" class="badge bg-secondary-lt">—</span>
+      <span id="jobEta" class="text-secondary"></span>
+      <span id="jobCounts" class="text-secondary"></span>
+    </div>
+    <div class="progress progress-sm"><div class="progress-bar" id="progressFill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<div id="itemsList"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/llm_result.js?v=2"></script>
+{% endblock %}

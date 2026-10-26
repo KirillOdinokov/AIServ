@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Файлы{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Файлы</h2>
+      <div class="text-secondary mt-1">Менеджер каталога output</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div id="breadcrumb" class="text-secondary"></div>
+    <div class="card-actions d-flex gap-2">
+      <button class="btn btn-outline-secondary btn-sm" id="btnUp">Вверх</button>
+      <button class="btn btn-outline-secondary btn-sm" id="btnZip">Скачать папку (ZIP)</button>
+      <button class="btn btn-outline-secondary btn-sm" id="btnRefresh">Обновить</button>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead><tr><th>Имя</th><th>Размер</th><th class="w-1"></th></tr></thead>
+      <tbody id="fmBody"></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/files.js?v=2"></script>
+{% endblock %}

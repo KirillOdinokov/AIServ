@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Создание текстов{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Создание текстов</h2>
+      <div class="text-secondary mt-1">Описания товаров через DeepSeek / Ollama</div>
+    </div>
+    <div class="col-auto ms-auto d-flex align-items-center gap-2">
+      <span id="peakStatus" class="text-secondary"></span>
+      <button id="llmToggle" class="btn btn-outline-secondary btn-sm">⏸ Пауза</button>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Загрузить CSV с товарами</h3></div>
+      <div class="card-body">
+        <p class="text-secondary">
+          Колонки: <code>ID</code>, <code>post_title</code>, <code>post_excerpt</code>, <code>post_content</code>.
+          Если описания нет — данные будут найдены в интернете (DuckDuckGo).
+        </p>
+        <form id="uploadForm">
+          <input type="file" id="csvFile" class="form-control mb-3" accept=".csv" required>
+          <button type="submit" class="btn btn-primary">Загрузить и запустить</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Статус очереди</h3></div>
+      <div class="card-body text-secondary" id="queueInfo">
+        DeepSeek: в часы пик очередь приостанавливается, продолжение — вне пиковых окон.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header"><h3 class="card-title">Задачи</h3></div>
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr><th>#</th><th>Файл</th><th>Прогресс</th><th>Статус</th><th>Создано</th><th class="w-1"></th></tr>
+      </thead>
+      <tbody id="jobsBody"></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/llm.js?v=2"></script>
+{% endblock %}

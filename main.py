@@ -486,13 +486,13 @@ def result_page(job_id: str):
 
 
 @app.get("/llm", response_class=HTMLResponse)
-def llm_index():
-    return FileResponse(STATIC_DIR / "llm.html")
+def llm_index(request: Request):
+    return templates.TemplateResponse(request, "llm.html", {"active": "llm"})
 
 
 @app.get("/llm/result/{job_id}", response_class=HTMLResponse)
-def llm_result_page(job_id: str):
-    return FileResponse(STATIC_DIR / "llm_result.html")
+def llm_result_page(job_id: str, request: Request):
+    return templates.TemplateResponse(request, "llm_result.html", {"active": "llm"})
 
 
 @app.get("/ref/configure/{job_id}", response_class=HTMLResponse)
@@ -511,8 +511,8 @@ def ref_result_page(job_id: str):
 
 
 @app.get("/thumbs", response_class=HTMLResponse)
-def thumbs_page():
-    return FileResponse(STATIC_DIR / "thumbs.html")
+def thumbs_page(request: Request):
+    return templates.TemplateResponse(request, "thumbs.html", {"active": "thumbs"})
 
 
 # ─── API: модели ─────────────────────────────────────────────────────────────
@@ -2211,8 +2211,8 @@ def _cleanup_single_temp():
 
 
 @app.get("/single", response_class=HTMLResponse)
-def single_page():
-    return FileResponse(STATIC_DIR / "single.html")
+def single_page(request: Request):
+    return templates.TemplateResponse(request, "single.html", {"active": "single"})
 
 
 @app.post("/api/single/generate")
@@ -2346,13 +2346,13 @@ UPSCALE_MODELS = ("flux2-klein-4b", "krea2-turbo")
 
 
 @app.get("/upscale", response_class=HTMLResponse)
-def upscale_page():
-    return FileResponse(STATIC_DIR / "upscale.html")
+def upscale_page(request: Request):
+    return templates.TemplateResponse(request, "upscale.html", {"active": "upscale"})
 
 
 @app.get("/upscale/{batch_id}", response_class=HTMLResponse)
-def upscale_batch_page(batch_id: str):
-    return FileResponse(STATIC_DIR / "upscale.html")
+def upscale_batch_page(batch_id: str, request: Request):
+    return templates.TemplateResponse(request, "upscale.html", {"active": "upscale"})
 
 
 @app.post("/api/upscale/generate")
@@ -2663,8 +2663,8 @@ def _video_worker(job_id):
 
 
 @app.get("/video", response_class=HTMLResponse)
-def video_page():
-    return FileResponse(STATIC_DIR / "video.html")
+def video_page(request: Request):
+    return templates.TemplateResponse(request, "video.html", {"active": "video"})
 
 
 @app.post("/api/video/generate")
@@ -2888,8 +2888,8 @@ def _start_publish(job_id: str, body: dict):
 # ─── Файловый менеджер ────────────────────────────────────────────────────────
 
 @app.get("/files", response_class=HTMLResponse)
-def files_page():
-    return FileResponse(STATIC_DIR / "files.html")
+def files_page(request: Request):
+    return templates.TemplateResponse(request, "files.html", {"active": "files"})
 
 
 def _resolve_path(rel):

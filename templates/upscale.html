@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Upscale{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Upscale</h2>
+      <div class="text-secondary mt-1">Повышение чёткости и детализации</div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Модель и промпт</h3></div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label" for="model">Модель</label>
+          <select id="model" class="form-select">
+            <option value="flux2-klein-4b" selected>FLUX.2 Klein 4B (multimodal)</option>
+            <option value="krea2-turbo">Krea 2 Turbo (img2img)</option>
+          </select>
+        </div>
+        <div class="mb-0">
+          <label class="form-label" for="prompt">Промпт</label>
+          <textarea id="prompt" class="form-control" rows="3">Upscale this image: increase resolution and sharpness, enhance fine details, reduce noise, pixelation and compression artifacts, keep the original composition and subject unchanged.</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><h3 class="card-title">Одна картинка</h3></div>
+      <div class="card-body">
+        <input type="file" id="imageFile" class="form-control mb-3" accept=".png,.jpg,.jpeg,.webp">
+        <button id="btnRun" class="btn btn-primary">Upscale</button>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><h3 class="card-title">Массовый upscale (CSV)</h3></div>
+      <div class="card-body">
+        <p class="text-secondary">CSV с колонками <code>id</code> (имя файла результата) и <code>image</code> (URL исходной картинки).</p>
+        <input type="file" id="csvFile" class="form-control mb-3" accept=".csv">
+        <button id="btnBatch" class="btn btn-primary">Upscale (массово)</button>
+        <div class="text-secondary mt-2" id="batchStatus"></div>
+        <a class="btn btn-outline-secondary btn-sm mt-2" id="btnBatchZip" href="#" download style="display:none;">Скачать ZIP</a>
+        <div class="row row-cards mt-2" id="batchResults"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card" id="resultCard" style="display:none">
+      <div class="card-header"><h3 class="card-title">Результат</h3></div>
+      <div class="card-body">
+        <p class="text-secondary" id="status"></p>
+        <div class="row row-cards" id="results"></div>
+        <div class="text-danger mt-2" id="error" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/upscale.js?v=2"></script>
+{% endblock %}
