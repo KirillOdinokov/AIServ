@@ -11,8 +11,8 @@
   --tblr-border-color-translucent: rgba(0, 0, 0, .08);
   --tblr-secondary-bg: #dddddd;
   --tblr-secondary-color: #999999;
-  --tblr-link-color: #d60b0b;
-  --tblr-link-hover-color: #b00909;
+  --tblr-link-color: #0d6efd;
+  --tblr-link-hover-color: #0a58ca;
 }
 
 html, body {
@@ -26,8 +26,8 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: .2px;
 }
 
-a { color: #d60b0b; }
-a:hover { color: #b00909; }
+a { color: #0d6efd; }
+a:hover { color: #0a58ca; }
 
 /* ── Акцент ─────────────────────────────────────────────────────────────── */
 .btn-primary {
@@ -57,7 +57,13 @@ a:hover { color: #b00909; }
   letter-spacing: 1px;
   font-size: 1.35rem;
 }
-.navbar-vertical .navbar-brand .brand-accent { color: #d60b0b; }
+.navbar-vertical .navbar-brand {
+  justify-content: center;
+  text-align: center;
+  margin: 0 auto;
+  padding-bottom: .75rem;
+}
+.navbar-vertical .navbar-brand a { display: block; }
 .navbar-vertical .nav-link {
   color: #999999 !important;
   border-radius: 6px;
@@ -155,17 +161,62 @@ header.navbar {
 /* ── Логотип ────────────────────────────────────────────────────────────── */
 .sidebar-logo {
   display: block;
-  max-width: 150px;
+  max-width: 170px;
   height: auto;
-  background: #ffffff;
-  padding: 6px 8px;
-  border-radius: 6px;
+  margin: 0 auto;
 }
 .login-logo { max-width: 300px; height: auto; }
+
+/* ── Аналоговые спидометры (Статус сервера) ─────────────────────────────── */
+.ai-gauge {
+  width: 100%;
+  max-width: 190px;
+  margin: 0 auto;
+}
+.ai-gauge svg { display: block; width: 100%; height: auto; }
+
+/* ── Шкала температур (зелёный → красный) ──────────────────────────────── */
+.ai-scale {
+  position: relative;
+  height: 14px;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #2fb344 0%, #f59f00 55%, #d60b0b 100%);
+  margin: 6px 0 32px;
+}
+.ai-scale-marker {
+  position: absolute;
+  top: -7px;
+  width: 3px;
+  height: 28px;
+  background: #111111;
+  border-radius: 2px;
+  transform: translateX(-50%);
+  transition: left .5s ease;
+}
+.ai-scale-marker::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #111111;
+}
+.ai-scale-label {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: .82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #111111;
+}
 
 /* ── Мобильная адаптация ────────────────────────────────────────────────── */
 @media (max-width: 991.98px) {
   .hardware-bar { gap: 8px; font-size: .75rem; }
   .hw-item { padding: 2px 6px; }
-  .sidebar-logo { max-width: 120px; }
+  .sidebar-logo { max-width: 140px; }
 }

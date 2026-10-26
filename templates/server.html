@@ -15,7 +15,89 @@
 </div>
 
 <div class="row row-cards mb-3">
-  <div class="col-md-6 col-lg-4">
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <div class="ai-gauge" id="gaugeCpu"></div>
+        <div class="subheader mt-1">CPU</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <div class="ai-gauge" id="gaugeGpu"></div>
+        <div class="subheader mt-1">GPU</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <div class="ai-gauge" id="gaugeRam"></div>
+        <div class="subheader mt-1">RAM</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <div class="ai-gauge" id="gaugeVram"></div>
+        <div class="subheader mt-1">VRAM</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <div class="ai-gauge" id="gaugeDisk"></div>
+        <div class="subheader mt-1">Диск /</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl-2">
+    <div class="card h-100">
+      <div class="card-body text-center">
+        <div class="ai-gauge" id="gaugeData"></div>
+        <div class="subheader mt-1">/data</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header">
+        <h3 class="card-title">Температуры</h3>
+        <div class="card-actions text-secondary small">шкала 0–100 °C</div>
+      </div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-baseline mb-1">
+          <span class="fw-bold">CPU</span>
+          <span class="text-secondary" id="tempCpuText">—</span>
+        </div>
+        <div class="ai-scale">
+          <div class="ai-scale-marker" id="tempCpuMarker" style="left:0%">
+            <span class="ai-scale-label" id="tempCpuLabel">—</span>
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-baseline mb-1">
+          <span class="fw-bold">GPU</span>
+          <span class="text-secondary" id="tempGpuText">—</span>
+        </div>
+        <div class="ai-scale">
+          <div class="ai-scale-marker" id="tempGpuMarker" style="left:0%">
+            <span class="ai-scale-label" id="tempGpuLabel">—</span>
+          </div>
+        </div>
+
+        <div class="text-secondary small">Ползунок показывает текущую температуру; зелёный — холодно, красный — горячо.</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
     <div class="card h-100">
       <div class="card-header"><h3 class="card-title">Система</h3></div>
       <div class="card-body">
@@ -24,30 +106,16 @@
           <dt class="col-5 text-secondary">ОС</dt><dd class="col-7" id="srvOs">—</dd>
           <dt class="col-5 text-secondary">Uptime</dt><dd class="col-7" id="srvUptime">—</dd>
           <dt class="col-5 text-secondary">CPU</dt><dd class="col-7" id="srvCpu">—</dd>
-          <dt class="col-5 text-secondary">Темп. CPU</dt><dd class="col-7" id="srvCpuTemp">—</dd>
-          <dt class="col-5 text-secondary">GPU</dt><dd class="col-7" id="srvGpu">—</dd>
           <dt class="col-5 text-secondary">RAM</dt><dd class="col-7" id="srvRam">—</dd>
           <dt class="col-5 text-secondary">SWAP</dt><dd class="col-7" id="srvSwap">—</dd>
         </dl>
       </div>
     </div>
   </div>
-  <div class="col-md-6 col-lg-4">
-    <div class="card h-100">
-      <div class="card-header"><h3 class="card-title">Диски</h3></div>
-      <div class="card-body">
-        <div class="mb-3">
-          <div class="d-flex justify-content-between mb-1"><span>Диск /</span><span class="text-secondary" id="srvDisk">—</span></div>
-          <div class="progress progress-sm"><div class="progress-bar" id="srvDiskBar" style="width:0%"></div></div>
-        </div>
-        <div>
-          <div class="d-flex justify-content-between mb-1"><span>/data</span><span class="text-secondary" id="srvData">—</span></div>
-          <div class="progress progress-sm"><div class="progress-bar" id="srvDataBar" style="width:0%"></div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="col-md-6 col-lg-4">
+</div>
+
+<div class="row row-cards">
+  <div class="col-lg-4">
     <div class="card h-100">
       <div class="card-header"><h3 class="card-title">Загруженные модели</h3></div>
       <div class="card-body">
@@ -57,16 +125,13 @@
       </div>
     </div>
   </div>
-</div>
-
-<div class="row row-cards">
-  <div class="col-12">
-    <div class="card">
+  <div class="col-lg-8">
+    <div class="card h-100">
       <div class="card-header">
         <h3 class="card-title">Логи</h3>
         <div class="card-actions d-flex align-items-center gap-2">
           <select class="form-select form-select-sm" id="logSelect" style="width:auto;">
-            <option value="flux">flask / flux (ошибки)</option>
+            <option value="flux">flux (ошибки)</option>
             <option value="flux_out">flux (вывод)</option>
             <option value="comfy">ComfyUI (ошибки)</option>
             <option value="comfy_out">ComfyUI (вывод)</option>
@@ -75,7 +140,7 @@
         </div>
       </div>
       <div class="card-body p-0">
-        <pre id="logView" class="m-0 p-3" style="max-height:420px;overflow:auto;background:#0b0b0b;color:#d0d0d0;font-size:.8rem;border-radius:0 0 6px 6px;">Загрузка…</pre>
+        <pre id="logView" class="m-0 p-3" style="max-height:360px;overflow:auto;background:#0b0b0b;color:#d0d0d0;font-size:.8rem;border-radius:0 0 6px 6px;">Загрузка…</pre>
       </div>
     </div>
   </div>
