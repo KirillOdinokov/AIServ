@@ -160,7 +160,11 @@ static/            — веб-интерфейс
 
 ## Доступы
 
-- Веб: `https://109.95.77.86:10443` (логин/пароль из env `FLUX_USER`/`FLUX_PASSWORD`).
+- Веб: **`https://ai.enix.ru:10443`** (Let's Encrypt, nginx SNI на 10443). Легаси:
+  `https://109.95.77.86:10443` (self-signed). Логин/пароль — env `FLUX_USER`/`FLUX_PASSWORD` (`.env`).
+- SSL: `acme.sh` (DNS-01, Beget) → `/etc/nginx/ssl/ai.enix.ru.crt`, до 2027-01-24.
+  Продление: добавить TXT `_acme-challenge.ai` в Beget (ручное) либо настроить `dns_beget` с API-кредами.
+- nginx: `flux` (IP, default) + `zz-ai-enix` (`server_name ai.enix.ru`) на `listen 10443 ssl`.
 - SSH: порт 2222, пользователь `kirill`.
 - Часовой пояс Europe/Moscow.
 
