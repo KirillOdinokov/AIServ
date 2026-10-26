@@ -115,7 +115,10 @@ text-to-image + редактирование (до 10 референсов) + bo
 
 | Путь | Что делает |
 |---|---|
-| `/` | главная: загрузка CSV (картинки/тексты/референсы), модели, задачи |
+| `/` | дашборд: виджеты, графики за час/день/неделю, последние задачи |
+| `/tasks` | загрузка CSV (картинки/тексты/референсы), модели, очередь |
+| `/server` | статус сервера: железо, диски, загруженные модели, логи |
+| `/base` | раздел «База» (заглушка, в разработке) |
 | `/map/{id}` | сопоставление колонок CSV (+ загрузка логотипа-референса) |
 | `/configure/{id}` | выбор моделей, запуск |
 | `/result/{id}` | результаты + «Утвердить выбранные» + ZIP (WEBP) + публикация |
@@ -152,6 +155,20 @@ stats_monitor.py/stats_report.py — сбор/отчёт по CPU/GPU/RAM/VRAM
 downloader.py      — загрузка моделей (HF)
 static/            — веб-интерфейс
 ```
+
+## UI (Tabler)
+
+- Шаблоны: `templates/` (Jinja2, наследуют `base.html`), через `Jinja2Templates` в `main.py`.
+- Вендоренные ассеты: `static/vendor/tabler` (v1.7.1), `static/vendor/tabler-icons`
+  (v3.49), `static/vendor/apexcharts`; бренд-стили — `static/css/ai-enix.css`.
+- Бренд: акцент `#d60b0b`, фон белый, шрифт Roboto Condensed; sidebar/футер чёрные
+  (`#000`), заголовки `#fff`, текст `#999`, рамки/фоны `#dddddd`.
+- Роуты: `/` (дашборд), `/tasks`, `/server`, `/base`; остальные страницы пока на
+  старых `static/*.html` (переводятся постепенно).
+- API дашборда: `/api/stats/history?period=hour|day|week` (агрегация
+  `stats_history.jsonl`, кэш 60с), `/api/server/status`, `/api/server/logs`.
+- **Готчас:** Starlette **1.6** — `TemplateResponse(request, name, context)`
+  (старый `TemplateResponse(name, {"request": ...})` даёт 500).
 
 ## Токены/ключи (файлы в корне проекта)
 

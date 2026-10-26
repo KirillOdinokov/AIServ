@@ -5,10 +5,13 @@ import json
 import os
 import random
 import secrets
+import threading
+import time
 import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Request, Form
+from fastapi.templating import Jinja2Templates
 from fastapi.responses import FileResponse, HTMLResponse, Response, RedirectResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -35,6 +38,9 @@ app = FastAPI(title="AI ENIX")
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
+TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 
 # ─── Авторизация (веб-форма логина + cookie-сессия) ─────────────────────────
@@ -73,8 +79,8 @@ app.add_middleware(AuthMiddleware)
 
 
 @app.get("/login", response_class=HTMLResponse)
-def login_page():
-    return FileResponse(STATIC_DIR / "login.html")
+def login_page(request: Request):
+    return templates.TemplateResponse(request, "login.html")
 
 
 @app.post("/api/login")
@@ -217,6 +223,180 @@ def system_stats():
     }
 
 
+# ─── Статистика для дашборда ────────────────────────────────────────────────
+
+_STATS_FILE = config.BASE_DIR / "stats_history.jsonl"
+_STATS_CACHE = {}
+_STATS_LOCK = threading.Lock()
+
+
+def _read_stats_rows():
+    rows = []
+    if not _STATS_FILE.exists():
+        return rows
+    try:
+        with open(_STATS_FILE, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rows.append(json.loads(line))
+                except Exception:
+                    continue
+    except OSError:
+        pass
+    return rows
+
+
+def _avg(vals):
+    vals = [v for v in vals if v is not None]
+    return round(sum(vals) / len(vals), 1) if vals else None
+
+
+@app.get("/api/stats/history")
+def stats_history(period: str = "day"):
+    now = int(time.time())
+    with _STATS_LOCK:
+        cached = _STATS_CACHE.get(period)
+        if cached and cached[0] > now:
+            return cached[1]
+
+        if period == "hour":
+            span, bucket, fmt = 3600, 60, "%H:%M"
+        elif period == "week":
+            span, bucket, fmt = 7 * 86400, 3 * 3600, "%d.%m %H:%M"
+        else:
+            span, bucket, fmt = 86400, 3600, "%H:%M"
+        start = now - span
+
+        import shutil as _sh
+        root_total = 0.0
+        data_total = 0.0
+        try:
+            root_total = _sh.disk_usage("/").total / 1024 ** 3
+            if Path("/data").exists():
+                data_total = _sh.disk_usage("/data").total / 1024 ** 3
+        except OSError:
+            pass
+
+        buckets = {}
+        for r in _read_stats_rows():
+            ts = r.get("ts")
+            if ts is None or ts < start:
+                continue
+            b = (ts // bucket) * bucket
+            d = buckets.setdefault(b, {
+                "cpu": [], "gpu": [], "ram": [], "vram": [],
+                "disk": [], "data": [], "cpu_temp": [], "gpu_temp": [],
+            })
+            if r.get("cpu_percent") is not None:
+                d["cpu"].append(r["cpu_percent"])
+            if r.get("gpu_util") is not None:
+                d["gpu"].append(r["gpu_util"])
+            if r.get("ram_used_mb") and r.get("ram_total_mb"):
+                d["ram"].append(r["ram_used_mb"] / r["ram_total_mb"] * 100)
+            if r.get("vram_used_mb") is not None and r.get("vram_total_mb"):
+                d["vram"].append(r["vram_used_mb"] / r["vram_total_mb"] * 100)
+            if r.get("disk_root_gb") is not None and root_total:
+                d["disk"].append(r["disk_root_gb"] / root_total * 100)
+            if r.get("disk_data_gb") is not None and data_total:
+                d["data"].append(r["disk_data_gb"] / data_total * 100)
+            if r.get("cpu_temp") is not None:
+                d["cpu_temp"].append(r["cpu_temp"])
+            if r.get("gpu_temp") is not None:
+                d["gpu_temp"].append(r["gpu_temp"])
+
+        keys = ("cpu", "gpu", "ram", "vram", "disk", "data", "cpu_temp", "gpu_temp")
+        labels = []
+        series = {k: [] for k in keys}
+        for b in sorted(buckets):
+            labels.append(time.strftime(fmt, time.localtime(b)))
+            for k in keys:
+                series[k].append(_avg(buckets[b][k]))
+
+        result = {
+            "labels": labels,
+            "series": series,
+            "totals": {"root_gb": round(root_total, 1), "data_gb": round(data_total, 1)},
+        }
+        _STATS_CACHE[period] = (now + 60, result)
+        return result
+
+
+_LOG_FILES = {
+    "flux": "srv_err.log",
+    "flux_out": "srv_out.log",
+    "comfy": "comfy_err.log",
+    "comfy_out": "comfy_out.log",
+}
+
+
+@app.get("/api/server/logs")
+def server_logs(name: str = "flux", lines: int = 200):
+    filename = _LOG_FILES.get(name, "srv_err.log")
+    path = config.BASE_DIR / filename
+    lines = max(10, min(int(lines), 2000))
+    if not path.exists():
+        return {"name": name, "content": ""}
+    try:
+        with open(path, "rb") as f:
+            f.seek(0, 2)
+            size = f.tell()
+            block = 8192
+            data = b""
+            while size > 0 and data.count(b"\n") <= lines:
+                step = min(block, size)
+                size -= step
+                f.seek(size)
+                data = f.read(step) + data
+        text = data.decode("utf-8", errors="replace")
+        return {"name": name, "content": "\n".join(text.splitlines()[-lines:])}
+    except OSError as e:
+        return {"name": name, "content": f"Ошибка чтения: {e}"}
+
+
+@app.get("/api/server/status")
+def server_status():
+    import platform
+    import psutil
+
+    stats = system_stats()
+    try:
+        loaded = generator.current_model()
+    except Exception:
+        loaded = None
+    stats["loaded_model"] = loaded
+
+    try:
+        stats["uptime_sec"] = int(time.time() - psutil.boot_time())
+    except Exception:
+        stats["uptime_sec"] = None
+    stats["hostname"] = platform.node()
+    stats["os"] = platform.platform()
+
+    try:
+        with open("/proc/cpuinfo", encoding="utf-8") as f:
+            for line in f:
+                if line.startswith("model name"):
+                    stats["cpu"]["model"] = line.split(":", 1)[1].strip()
+                    break
+    except OSError:
+        pass
+
+    ollama = []
+    try:
+        import urllib.request
+        with urllib.request.urlopen("http://127.0.0.1:11434/api/ps", timeout=3) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        for m in data.get("models", []):
+            ollama.append({"name": m.get("name"), "size": m.get("size")})
+    except Exception:
+        pass
+    stats["ollama"] = ollama
+    return stats
+
+
 # ─── Управление сервером ─────────────────────────────────────────────────────
 
 @app.post("/api/server/restart")
@@ -255,8 +435,23 @@ def server_stop():
 # ─── Страницы ────────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
-def index():
-    return FileResponse(STATIC_DIR / "index.html")
+def index(request: Request):
+    return templates.TemplateResponse(request, "dashboard.html", {"active": "dashboard"})
+
+
+@app.get("/tasks", response_class=HTMLResponse)
+def tasks_page(request: Request):
+    return templates.TemplateResponse(request, "tasks.html", {"active": "tasks"})
+
+
+@app.get("/server", response_class=HTMLResponse)
+def server_page(request: Request):
+    return templates.TemplateResponse(request, "server.html", {"active": "server"})
+
+
+@app.get("/base", response_class=HTMLResponse)
+def base_page(request: Request):
+    return templates.TemplateResponse(request, "base_placeholder.html", {"active": "base"})
 
 
 @app.get("/configure/{job_id}", response_class=HTMLResponse)

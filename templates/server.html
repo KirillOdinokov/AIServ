@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Статус сервера{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Статус сервера</h2>
+      <div class="text-secondary mt-1">Оборудование, модели и логи</div>
+    </div>
+    <div class="col-auto ms-auto">
+      <button class="btn btn-outline-secondary btn-sm" id="btnRefreshServer">Обновить</button>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100">
+      <div class="card-header"><h3 class="card-title">Система</h3></div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-5 text-secondary">Хост</dt><dd class="col-7" id="srvHost">—</dd>
+          <dt class="col-5 text-secondary">ОС</dt><dd class="col-7" id="srvOs">—</dd>
+          <dt class="col-5 text-secondary">Uptime</dt><dd class="col-7" id="srvUptime">—</dd>
+          <dt class="col-5 text-secondary">CPU</dt><dd class="col-7" id="srvCpu">—</dd>
+          <dt class="col-5 text-secondary">Темп. CPU</dt><dd class="col-7" id="srvCpuTemp">—</dd>
+          <dt class="col-5 text-secondary">GPU</dt><dd class="col-7" id="srvGpu">—</dd>
+          <dt class="col-5 text-secondary">RAM</dt><dd class="col-7" id="srvRam">—</dd>
+          <dt class="col-5 text-secondary">SWAP</dt><dd class="col-7" id="srvSwap">—</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100">
+      <div class="card-header"><h3 class="card-title">Диски</h3></div>
+      <div class="card-body">
+        <div class="mb-3">
+          <div class="d-flex justify-content-between mb-1"><span>Диск /</span><span class="text-secondary" id="srvDisk">—</span></div>
+          <div class="progress progress-sm"><div class="progress-bar" id="srvDiskBar" style="width:0%"></div></div>
+        </div>
+        <div>
+          <div class="d-flex justify-content-between mb-1"><span>/data</span><span class="text-secondary" id="srvData">—</span></div>
+          <div class="progress progress-sm"><div class="progress-bar" id="srvDataBar" style="width:0%"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100">
+      <div class="card-header"><h3 class="card-title">Загруженные модели</h3></div>
+      <div class="card-body">
+        <div class="mb-2"><span class="text-secondary">В VRAM (генерация):</span> <span id="srvLoaded">—</span></div>
+        <div class="text-secondary mb-1">Ollama:</div>
+        <ul class="list-unstyled mb-0" id="srvOllama"><li class="text-secondary">—</li></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Логи</h3>
+        <div class="card-actions d-flex align-items-center gap-2">
+          <select class="form-select form-select-sm" id="logSelect" style="width:auto;">
+            <option value="flux">flask / flux (ошибки)</option>
+            <option value="flux_out">flux (вывод)</option>
+            <option value="comfy">ComfyUI (ошибки)</option>
+            <option value="comfy_out">ComfyUI (вывод)</option>
+          </select>
+          <button class="btn btn-sm btn-outline-secondary" id="btnRefreshLog">Обновить</button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <pre id="logView" class="m-0 p-3" style="max-height:420px;overflow:auto;background:#0b0b0b;color:#d0d0d0;font-size:.8rem;border-radius:0 0 6px 6px;">Загрузка…</pre>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/server.js"></script>
+{% endblock %}

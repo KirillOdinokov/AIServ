@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Задачи{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Задачи</h2>
+      <div class="text-secondary mt-1">Загрузка CSV и очередь генерации</div>
+    </div>
+    <div class="col-auto ms-auto d-flex gap-2">
+      <a href="/single" class="btn btn-outline-secondary btn-sm">Единый промпт</a>
+      <a href="/video" class="btn btn-outline-secondary btn-sm">Видео</a>
+      <a href="/upscale" class="btn btn-outline-secondary btn-sm">Upscale</a>
+      <a href="/thumbs" class="btn btn-outline-secondary btn-sm">Миниатюры</a>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header"><h3 class="card-title">Пакетная генерация изображений</h3></div>
+      <div class="card-body">
+        <p class="text-secondary">CSV: <code>ID</code>, <code>prompt</code>, <code>aspect_ratio</code>.</p>
+        <form id="uploadForm">
+          <input type="file" id="csvFile" class="form-control mb-3" accept=".csv" required>
+          <button type="submit" class="btn btn-primary w-100">Далее</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100">
+      <div class="card-header"><h3 class="card-title">Создание текстов</h3></div>
+      <div class="card-body">
+        <p class="text-secondary">CSV: <code>ID</code>, <code>post_title</code>, <code>post_excerpt</code>, <code>post_content</code>.</p>
+        <div class="mb-3">
+          <label class="form-label">Модель</label>
+          <select id="llmModel" class="form-select">
+            <option value="deepseek" selected>DeepSeek V4 Flash (API)</option>
+            <option value="ollama_cloud">Ollama Cloud — Qwen3.5 397B</option>
+            <option value="local">Локальная модель (Ollama)</option>
+          </select>
+        </div>
+        <form id="llmUploadForm">
+          <input type="file" id="llmCsvFile" class="form-control mb-3" accept=".csv" required>
+          <button type="submit" class="btn btn-primary w-100">Загрузить и запустить</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card h-100" id="ref-upload">
+      <div class="card-header"><h3 class="card-title">Генерация по референсам</h3></div>
+      <div class="card-body">
+        <p class="text-secondary">CSV: <code>post_title</code>, <code>ID</code>, <code>image</code> (URL), <code>type</code>.</p>
+        <form id="refUploadForm">
+          <input type="file" id="refCsvFile" class="form-control mb-3" accept=".csv" required>
+          <button type="submit" class="btn btn-primary w-100">Далее</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Модели</h3></div>
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+          <thead><tr><th>Модель</th><th>Статус</th><th class="w-1"></th></tr></thead>
+          <tbody id="modelsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Очередь задач</h3>
+        <div class="card-actions text-secondary small">Обновляется каждые 5 секунд</div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Тип</th>
+              <th>Файл</th>
+              <th>Модель</th>
+              <th>Прогресс</th>
+              <th>Осталось</th>
+              <th>Статус</th>
+              <th>Создано</th>
+              <th class="w-1"></th>
+            </tr>
+          </thead>
+          <tbody id="jobsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/tasks.js"></script>
+{% endblock %}

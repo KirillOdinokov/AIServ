@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Обзор{% endblock %}
+{% block head %}
+<script src="/static/vendor/apexcharts/apexcharts.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Обзор</h2>
+      <div class="text-secondary mt-1">Состояние сервера и последние задачи</div>
+    </div>
+    <div class="col-auto ms-auto">
+      <a href="/tasks" class="btn btn-primary">
+        <i class="ti ti-plus me-1"></i> Новая задача
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="row row-deck row-cards mb-3">
+  <div class="col-6 col-lg-2">
+    <div class="card">
+      <div class="card-body">
+        <div class="subheader">CPU</div>
+        <div class="d-flex align-items-baseline gap-2">
+          <div class="h1 mb-0" id="statCpu">—</div>
+          <div class="text-secondary small" id="statCpuTemp"></div>
+        </div>
+        <div class="progress progress-sm mt-2"><div class="progress-bar" id="statCpuBar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card">
+      <div class="card-body">
+        <div class="subheader">GPU</div>
+        <div class="d-flex align-items-baseline gap-2">
+          <div class="h1 mb-0" id="statGpu">—</div>
+          <div class="text-secondary small" id="statGpuTemp"></div>
+        </div>
+        <div class="text-secondary small mt-1" id="statGpuSub">—</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card">
+      <div class="card-body">
+        <div class="subheader">RAM</div>
+        <div class="d-flex align-items-baseline gap-2">
+          <div class="h1 mb-0" id="statRam">—</div>
+          <div class="text-secondary small" id="statRamSub"></div>
+        </div>
+        <div class="progress progress-sm mt-2"><div class="progress-bar" id="statRamBar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card">
+      <div class="card-body">
+        <div class="subheader">VRAM</div>
+        <div class="d-flex align-items-baseline gap-2">
+          <div class="h1 mb-0" id="statVram">—</div>
+          <div class="text-secondary small" id="statVramSub"></div>
+        </div>
+        <div class="progress progress-sm mt-2"><div class="progress-bar" id="statVramBar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card">
+      <div class="card-body">
+        <div class="subheader">Диск /</div>
+        <div class="d-flex align-items-baseline gap-2">
+          <div class="h1 mb-0" id="statDisk">—</div>
+          <div class="text-secondary small" id="statDiskSub"></div>
+        </div>
+        <div class="progress progress-sm mt-2"><div class="progress-bar" id="statDiskBar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card">
+      <div class="card-body">
+        <div class="subheader">/data</div>
+        <div class="d-flex align-items-baseline gap-2">
+          <div class="h1 mb-0" id="statData">—</div>
+          <div class="text-secondary small" id="statDataSub"></div>
+        </div>
+        <div class="progress progress-sm mt-2"><div class="progress-bar" id="statDataBar" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Последние завершённые задачи</h3>
+        <div class="card-actions">
+          <a href="/tasks" class="btn btn-sm btn-outline-secondary">Все задачи</a>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+          <thead>
+            <tr>
+              <th>Тип</th>
+              <th>Задача</th>
+              <th>Прогресс</th>
+              <th>Создана</th>
+              <th class="w-1"></th>
+            </tr>
+          </thead>
+          <tbody id="recentTasks">
+            <tr><td colspan="5" class="text-secondary text-center py-4">Загрузка…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Использование сервера</h3>
+        <div class="card-actions d-flex flex-wrap align-items-center gap-3">
+          <div class="btn-group btn-group-sm" data-range-group="usage">
+            <button class="btn btn-outline-secondary" data-range="hour">Час</button>
+            <button class="btn btn-outline-secondary active" data-range="day">День</button>
+            <button class="btn btn-outline-secondary" data-range="week">Неделя</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-3 mb-2" id="usageChecks">
+          <label class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" data-series="CPU" checked><span class="form-check-label">CPU</span></label>
+          <label class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" data-series="GPU" checked><span class="form-check-label">GPU</span></label>
+          <label class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" data-series="RAM" checked><span class="form-check-label">RAM</span></label>
+          <label class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" data-series="VRAM" checked><span class="form-check-label">VRAM</span></label>
+          <label class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" data-series="Диск /" checked><span class="form-check-label">Диск /</span></label>
+          <label class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" data-series="/data" checked><span class="form-check-label">/data</span></label>
+        </div>
+        <div id="usageChart"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Состояние оборудования</h3>
+        <div class="card-actions d-flex flex-wrap align-items-center gap-3">
+          <div class="btn-group btn-group-sm" data-range-group="health">
+            <button class="btn btn-outline-secondary" data-range="hour">Час</button>
+            <button class="btn btn-outline-secondary active" data-range="day">День</button>
+            <button class="btn btn-outline-secondary" data-range="week">Неделя</button>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="d-flex flex-wrap gap-3 mb-2" id="healthChecks">
+          <label class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" data-series="CPU °C" checked><span class="form-check-label">CPU °C</span></label>
+          <label class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" data-series="GPU °C" checked><span class="form-check-label">GPU °C</span></label>
+          <label class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" data-series="Диск /" checked><span class="form-check-label">Диск /</span></label>
+          <label class="form-check form-check-inline m-0"><input class="form-check-input" type="checkbox" data-series="/data" checked><span class="form-check-label">/data</span></label>
+        </div>
+        <div id="healthChart"></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/dashboard.js"></script>
+{% endblock %}
