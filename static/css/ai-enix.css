@@ -152,8 +152,20 @@ header.navbar {
 /* ── Иконки в меню ──────────────────────────────────────────────────────── */
 .nav-link-icon { width: 1.25rem; height: 1.25rem; }
 
+/* ── Логотип ────────────────────────────────────────────────────────────── */
+.sidebar-logo {
+  display: block;
+  max-width: 150px;
+  height: auto;
+  background: #ffffff;
+  padding: 6px 8px;
+  border-radius: 6px;
+}
+.login-logo { max-width: 300px; height: auto; }
+
 /* ── Мобильная адаптация ────────────────────────────────────────────────── */
 @media (max-width: 991.98px) {
   .hardware-bar { gap: 8px; font-size: .75rem; }
   .hw-item { padding: 2px 6px; }
+  .sidebar-logo { max-width: 120px; }
 }
