@@ -72,7 +72,7 @@ def dashboard(request: Request):
     for table in ("products", "sites", "suppliers", "price_lists", "price_list_items"):
         counts[table] = db.query("SELECT count(*) AS n FROM " + table)[0]["n"]
     counts["reviews_pending"] = db.query("SELECT count(*) AS n FROM reviews WHERE status='pending'")[0]["n"]
-    return templates.TemplateResponse(request, "dashboard.html", {"active": "dashboard", "counts": counts})
+    return templates.TemplateResponse(request, "dashboard.html", {"active": "base_dashboard", "counts": counts})
 
 
 @app.get("/products", response_class=HTMLResponse)
@@ -92,17 +92,17 @@ def products_page(request: Request, q: str = "", page: int = 1):
         total = db.query("SELECT count(*) AS n FROM products")[0]["n"]
     return templates.TemplateResponse(
         request, "products.html",
-        {"active": "products", "rows": rows, "q": q, "page": page, "total": total, "per": per},
+        {"active": "base_products", "rows": rows, "q": q, "page": page, "total": total, "per": per},
     )
 
 
 @app.get("/sites", response_class=HTMLResponse)
 def sites_page(request: Request):
     rows = db.query("SELECT * FROM sites ORDER BY id")
-    return templates.TemplateResponse(request, "sites.html", {"active": "sites", "rows": rows})
+    return templates.TemplateResponse(request, "sites.html", {"active": "base_sites", "rows": rows})
 
 
 @app.get("/suppliers", response_class=HTMLResponse)
 def suppliers_page(request: Request):
     rows = db.query("SELECT * FROM suppliers ORDER BY id")
-    return templates.TemplateResponse(request, "suppliers.html", {"active": "suppliers", "rows": rows})
+    return templates.TemplateResponse(request, "suppliers.html", {"active": "base_suppliers", "rows": rows})

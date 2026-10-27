@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}AI ENIX База{% endblock %}</title>
+  <title>{% block title %}AI ENIX{% endblock %}</title>
   <link rel="stylesheet" href="/static/vendor/tabler/tabler.min.css">
   <link rel="stylesheet" href="/static/vendor/tabler-icons/tabler-icons.min.css">
   <link rel="stylesheet" href="/static/css/ai-enix.css?v=3">
@@ -18,38 +18,70 @@
         <span class="navbar-toggler-icon"></span>
       </button>
       <h1 class="navbar-brand navbar-brand-autodark mb-0">
-        <a href="{{ prefix }}/" class="text-decoration-none d-block">
+        <a href="/" class="text-decoration-none d-block">
           <img src="/static/img/logo-light.png" alt="AI ENIX" class="sidebar-logo">
         </a>
       </h1>
       <div class="collapse navbar-collapse flex-grow-1" id="sidebar-menu">
         <ul class="navbar-nav pt-lg-3">
           <li class="nav-item {% if active == 'dashboard' %}active{% endif %}">
-            <a class="nav-link" href="{{ prefix }}/">
+            <a class="nav-link" href="/">
               <span class="nav-link-icon"><i class="ti ti-layout-dashboard"></i></span>
               <span class="nav-link-title">Обзор</span>
             </a>
           </li>
-          <li class="nav-item {% if active == 'products' %}active{% endif %}">
-            <a class="nav-link" href="{{ prefix }}/products">
-              <span class="nav-link-icon"><i class="ti ti-package"></i></span>
-              <span class="nav-link-title">Товары</span>
+          <li class="nav-item {% if active == 'tasks' %}active{% endif %}">
+            <a class="nav-link" href="/tasks">
+              <span class="nav-link-icon"><i class="ti ti-list-check"></i></span>
+              <span class="nav-link-title">Задачи</span>
             </a>
           </li>
-          <li class="nav-item {% if active == 'sites' %}active{% endif %}">
-            <a class="nav-link" href="{{ prefix }}/sites">
-              <span class="nav-link-icon"><i class="ti ti-world"></i></span>
-              <span class="nav-link-title">Сайты</span>
+          <li class="nav-item dropdown {% if active in ['single','video','upscale','thumbs','refs'] %}active{% endif %}">
+            <a class="nav-link dropdown-toggle" href="#gen" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button" aria-expanded="false">
+              <span class="nav-link-icon"><i class="ti ti-photo"></i></span>
+              <span class="nav-link-title">Генерация изображений</span>
+            </a>
+            <div class="dropdown-menu">
+              <a class="dropdown-item {% if active == 'refs' %}active{% endif %}" href="/ref">Генерация по референсам</a>
+              <a class="dropdown-item {% if active == 'single' %}active{% endif %}" href="/single">Единый промпт</a>
+              <a class="dropdown-item {% if active == 'video' %}active{% endif %}" href="/video">Генерация видео</a>
+              <a class="dropdown-item {% if active == 'upscale' %}active{% endif %}" href="/upscale">Upscale</a>
+              <a class="dropdown-item {% if active == 'thumbs' %}active{% endif %}" href="/thumbs">Генерация миниатюр</a>
+            </div>
+          </li>
+          <li class="nav-item {% if active == 'llm' %}active{% endif %}">
+            <a class="nav-link" href="/llm">
+              <span class="nav-link-icon"><i class="ti ti-file-text"></i></span>
+              <span class="nav-link-title">Создание текстов</span>
             </a>
           </li>
-          <li class="nav-item {% if active == 'suppliers' %}active{% endif %}">
-            <a class="nav-link" href="{{ prefix }}/suppliers">
-              <span class="nav-link-icon"><i class="ti ti-truck"></i></span>
-              <span class="nav-link-title">Поставщики</span>
+          <li class="nav-item {% if active == 'files' %}active{% endif %}">
+            <a class="nav-link" href="/files">
+              <span class="nav-link-icon"><i class="ti ti-folder"></i></span>
+              <span class="nav-link-title">Файлы</span>
+            </a>
+          </li>
+          <li class="nav-item dropdown {% if active in ['base_dashboard','base_products','base_sites','base_suppliers'] %}active{% endif %}">
+            <a class="nav-link dropdown-toggle" href="#base" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button" aria-expanded="false">
+              <span class="nav-link-icon"><i class="ti ti-database"></i></span>
+              <span class="nav-link-title">База</span>
+            </a>
+            <div class="dropdown-menu">
+              <a class="dropdown-item {% if active == 'base_dashboard' %}active{% endif %}" href="/base/">Обзор</a>
+              <a class="dropdown-item {% if active == 'base_products' %}active{% endif %}" href="/base/products">Товары</a>
+              <a class="dropdown-item {% if active == 'base_sites' %}active{% endif %}" href="/base/sites">Сайты</a>
+              <a class="dropdown-item {% if active == 'base_suppliers' %}active{% endif %}" href="/base/suppliers">Поставщики</a>
+            </div>
+          </li>
+          <li class="nav-item {% if active == 'server' %}active{% endif %}">
+            <a class="nav-link" href="/server">
+              <span class="nav-link-icon"><i class="ti ti-server"></i></span>
+              <span class="nav-link-title">Статус сервера</span>
             </a>
           </li>
         </ul>
       </div>
+
       <div class="sidebar-footer mt-auto">
         <div class="sidebar-user">
           <span class="avatar avatar-sm" style="background:#d60b0b;color:#fff;">K</span>
@@ -58,6 +90,20 @@
             <div class="role">Администратор</div>
           </div>
         </div>
+        <div class="sidebar-controls">
+          <button class="sidebar-ctrl" id="btnToggle" title="Пауза / возобновить генерацию">
+            <i class="ti ti-player-pause" id="btnToggleIcon"></i>
+          </button>
+          <button class="sidebar-ctrl" id="btnSoftReset" title="Soft Reset — перезапуск веб-приложения">
+            <i class="ti ti-refresh"></i>
+          </button>
+          <button class="sidebar-ctrl sidebar-ctrl--warn" id="btnHardReset" title="Hard Reset — перезагрузка сервера">
+            <i class="ti ti-bolt"></i>
+          </button>
+          <button class="sidebar-ctrl sidebar-ctrl--danger" id="btnStop" title="Стоп — остановить сервер (flux + ComfyUI + Ollama)">
+            <i class="ti ti-power"></i>
+          </button>
+        </div>
         <a href="#" class="logout-link" id="btnLogout">Выйти</a>
       </div>
     </div>
@@ -65,9 +111,19 @@
 
   <div class="page-wrapper">
     <header class="navbar navbar-expand-md d-print-none">
-      <div class="container-xl d-flex justify-content-between align-items-center">
-        <div class="text-secondary">База — товары, цены, прайсы, сайты</div>
-        <a href="https://ai.enix.ru:10443/" class="btn btn-outline-secondary btn-sm" target="_blank">AI ENIX ↗</a>
+      <div class="container-xl">
+        <div class="navbar-nav flex-row w-100">
+          <div class="hardware-bar" id="hardwareBar">
+            <span class="hw-item" id="hwCpu">CPU: …</span>
+            <span class="hw-item" id="hwGpu">GPU: …</span>
+            <span class="hw-item" id="hwRam">RAM: …</span>
+            <span class="hw-item" id="hwSwap">SWAP: …</span>
+            <span class="hw-item" id="hwDisk">Диск: …</span>
+            <span class="hw-item" id="hwData">/data: …</span>
+            <span class="hw-item" id="hwNow">В VRAM: …</span>
+            <span class="hw-item" id="hwFree">Free in: …</span>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -79,7 +135,7 @@
 
     <footer class="ai-footer">
       <div class="container-xl d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div><span class="footer-title">AI ENIX</span> — База</div>
+        <div><span class="footer-title">AI ENIX</span> — генерация изображений, видео и текстов</div>
         <div>© 2026 AI ENIX</div>
       </div>
     </footer>
@@ -87,13 +143,8 @@
 </div>
 
 <script src="/static/vendor/tabler/tabler.min.js"></script>
-<script>
-  document.getElementById('btnLogout')?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    await fetch('/api/logout', { method: 'POST' });
-    location.href = '/login';
-  });
-</script>
+<script src="/static/status_bar.js?v=2"></script>
+<script src="/static/js/base.js"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>
