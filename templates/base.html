@@ -61,11 +61,17 @@
               <span class="nav-link-title">Файлы</span>
             </a>
           </li>
-          <li class="nav-item {% if active == 'base' %}active{% endif %}">
-            <a class="nav-link" href="/base">
+          <li class="nav-item dropdown {% if active == 'base' %}active{% endif %}">
+            <a class="nav-link dropdown-toggle" href="#base" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button" aria-expanded="false">
               <span class="nav-link-icon"><i class="ti ti-database"></i></span>
-              <span class="nav-link-title">База <span class="badge bg-secondary ms-1">скоро</span></span>
+              <span class="nav-link-title">База</span>
             </a>
+            <div class="dropdown-menu">
+              <a class="dropdown-item" href="/base/">Обзор</a>
+              <a class="dropdown-item" href="/base/products">Товары</a>
+              <a class="dropdown-item" href="/base/sites">Сайты</a>
+              <a class="dropdown-item" href="/base/suppliers">Поставщики</a>
+            </div>
           </li>
           <li class="nav-item {% if active == 'server' %}active{% endif %}">
             <a class="nav-link" href="/server">

@@ -1,10 +1,15 @@
-"""AI ENIX — сервис «База» (товары, цены, прайсы, сайты)."""
+"""AI ENIX — сервис «База» (товары, цены, прайсы, сайты).
+
+Авторизация общая с основным проектом: проверяем cookie `flux_session`
+через главный сервис (127.0.0.1:8000/api/session/check).
+"""
 import os
-import secrets
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -19,25 +24,33 @@ app = FastAPI(title="AI ENIX База")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
-AUTH_USER = os.getenv("FLUX_USER", "kirill")
-AUTH_PASSWORD = os.getenv("FLUX_PASSWORD", "")
-SESSION_COOKIE = "base_session"
-_sessions = set()
-
 PREFIX = os.getenv("BASE_PREFIX", "").rstrip("/")
+FLUX_AUTH_CHECK = os.getenv("FLUX_AUTH_CHECK", "http://127.0.0.1:8000/api/session/check")
 templates.env.globals["prefix"] = PREFIX
+
+
+def _is_authorized(token):
+    if not token:
+        return False
+    try:
+        req = urllib.request.Request(FLUX_AUTH_CHECK, headers={"Cookie": "flux_session=" + token})
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            return resp.status == 200
+    except Exception:
+        return False
 
 
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
-        if path in ("/login", "/api/login", "/api/logout", "/health") or path.startswith("/static"):
+        if path == "/health" or path.startswith("/static"):
             return await call_next(request)
-        token = request.cookies.get(SESSION_COOKIE)
-        if token not in _sessions:
+        token = request.cookies.get("flux_session")
+        if not _is_authorized(token):
             if path.startswith("/api/"):
                 return Response('{"error":"unauthorized"}', status_code=401, media_type="application/json")
-            return RedirectResponse(url=PREFIX + "/login", status_code=302)
+            next_path = PREFIX + path
+            return RedirectResponse(url="/login?next=" + urllib.parse.quote(next_path), status_code=302)
         return await call_next(request)
 
 
@@ -51,33 +64,6 @@ def health():
         return {"ok": True, "db": True}
     except Exception as e:
         return {"ok": False, "error": str(e)}
-
-
-@app.get("/login", response_class=HTMLResponse)
-def login_page(request: Request):
-    return templates.TemplateResponse(request, "login.html")
-
-
-@app.post("/api/login")
-async def api_login(request: Request):
-    form = await request.form()
-    if form.get("username") == AUTH_USER and form.get("password") == AUTH_PASSWORD:
-        token = secrets.token_hex(32)
-        _sessions.add(token)
-        resp = JSONResponse({"ok": True})
-        resp.set_cookie(SESSION_COOKIE, token, httponly=True, samesite="lax", max_age=60 * 60 * 24 * 30, path=PREFIX or "/")
-        return resp
-    return JSONResponse({"ok": False, "error": "Неверный логин или пароль"}, status_code=401)
-
-
-@app.post("/api/logout")
-def api_logout(request: Request):
-    token = request.cookies.get(SESSION_COOKIE)
-    if token:
-        _sessions.discard(token)
-    resp = JSONResponse({"ok": True})
-    resp.delete_cookie(SESSION_COOKIE)
-    return resp
 
 
 @app.get("/", response_class=HTMLResponse)

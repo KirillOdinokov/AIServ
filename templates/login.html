@@ -49,7 +49,10 @@
         const res = await fetch('/api/login', { method: 'POST', body: form });
         const data = await res.json();
         if (data.ok) {
-          window.location.href = '/';
+          const params = new URLSearchParams(window.location.search);
+          let next = params.get('next') || '/';
+          if (!next.startsWith('/') || next.startsWith('//')) next = '/';
+          window.location.href = next;
         } else {
           err.textContent = data.error || 'Ошибка входа';
         }

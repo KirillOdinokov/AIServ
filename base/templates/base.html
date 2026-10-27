@@ -90,8 +90,8 @@
 <script>
   document.getElementById('btnLogout')?.addEventListener('click', async (e) => {
     e.preventDefault();
-    await fetch('{{ prefix }}/api/logout', { method: 'POST' });
-    location.href = '{{ prefix }}/login';
+    await fetch('/api/logout', { method: 'POST' });
+    location.href = '/login';
   });
 </script>
 {% block scripts %}{% endblock %}

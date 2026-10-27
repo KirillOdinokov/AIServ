@@ -106,6 +106,14 @@ async def api_logout(request: Request):
     return resp
 
 
+@app.get("/api/session/check")
+def api_session_check(request: Request):
+    token = request.cookies.get(SESSION_COOKIE)
+    if token in _sessions:
+        return {"ok": True}
+    raise HTTPException(401, "unauthorized")
+
+
 @app.on_event("startup")
 def startup():
     # Восстанавливаем незавершённые задачи после перезапуска сервера
