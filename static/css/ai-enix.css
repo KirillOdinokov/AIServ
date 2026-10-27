@@ -315,3 +315,78 @@ header.navbar {
 .ai-lightbox-close { top: 16px; right: 24px; }
 .ai-lightbox-prev { left: 24px; top: 50%; transform: translateY(-50%); }
 .ai-lightbox-next { right: 24px; top: 50%; transform: translateY(-50%); }
+
+/* ── Чипы моделей (Единый промпт / Настройка задачи) ───────────────────── */
+.model-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .35rem .6rem;
+  border: 1px solid #dddddd;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: .92rem;
+  max-width: 100%;
+}
+.model-chip:hover { background: #fafafa; }
+.model-chip input[type="checkbox"] {
+  position: static;
+  margin: 0;
+  flex: 0 0 auto;
+  float: none;
+}
+.model-chip-label {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.model-chip [data-credit] { color: #999999; font-size: .78rem; }
+
+/* ── Проводник (Файлы) ─────────────────────────────────────────────────── */
+.ai-address {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid #dddddd;
+  background: #ffffff;
+  padding: 5px 10px;
+  min-height: 34px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.ai-address a { color: #0d6efd; text-decoration: none; }
+.ai-address a:hover { text-decoration: underline; }
+.ai-address .sep { color: #999999; }
+
+.ai-fm-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+.ai-fm-row:hover { background: #f5f8ff; }
+.ai-fm-row .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-fm-row .meta { color: #999999; font-size: .82rem; }
+
+.ai-fm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  padding: 12px;
+}
+.ai-fm-tile {
+  border: 1px solid #dddddd;
+  padding: 12px 8px;
+  text-align: center;
+  cursor: pointer;
+  background: #ffffff;
+}
+.ai-fm-tile:hover { background: #f5f8ff; }
+.ai-fm-tile .ti { font-size: 2rem; }
+.ai-fm-tile .nm { font-size: .85rem; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ai-fm-tile .meta { color: #999999; font-size: .75rem; }

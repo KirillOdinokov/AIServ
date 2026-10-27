@@ -20,10 +20,10 @@
 
   function addCheckbox(box, id, label, isNb) {
     const l = document.createElement('label');
-    l.className = 'form-check form-check-inline m-0 border px-2 py-1';
-    const creditSpan = isNb ? '<span class="text-secondary small ms-1" data-credit="' + id + '"></span>' : '';
-    l.innerHTML = '<input class="form-check-input" type="checkbox" name="model" value="' + id + '"> ' +
-      '<span class="form-check-label">' + esc(label) + creditSpan + '</span>';
+    l.className = 'model-chip';
+    const creditSpan = isNb ? '<span data-credit="' + id + '"></span>' : '';
+    l.innerHTML = '<input type="checkbox" name="model" value="' + id + '">' +
+      '<span class="model-chip-label">' + esc(label) + creditSpan + '</span>';
     box.appendChild(l);
   }
 

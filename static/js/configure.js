@@ -13,9 +13,9 @@
     box.innerHTML = '';
     models.forEach(m => {
       const label = document.createElement('label');
-      label.className = 'form-check form-check-inline m-0 border px-2 py-1';
-      label.innerHTML = '<input class="form-check-input" type="checkbox" name="model" value="' + m.id + '"> ' +
-        '<span class="form-check-label">' + esc(m.label) + '</span>';
+      label.className = 'model-chip';
+      label.innerHTML = '<input type="checkbox" name="model" value="' + m.id + '">' +
+        '<span class="model-chip-label">' + esc(m.label) + '</span>';
       box.appendChild(label);
     });
   }
