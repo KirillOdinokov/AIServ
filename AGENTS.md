@@ -265,7 +265,9 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
   `/home/enix_admin/ops/supplier-slug-amalor-20261027/`.
 - **Эмбеддинги Amalor (106 928 × 1024) — отложены:** 515 МБ gz, лимит 5 Мбит/с в
   будни 07–19. Файл: `/tmp/amalor_vectors.csv.gz` на office-сервере; импорт —
-  `products.embedding` (колонка/индекс готовы).
+  `products.embedding` (колонка/индекс готовы). Вечером (после 19:00): перенести
+  на flux в `/tmp/`, `gunzip`, затем `base/import_vectors.sql` (staging →
+  `UPDATE products.embedding` → HNSW).
 
 ### Дальше (Phase 2+)
 - Перенести эмбеддинги после 19:00/выходных и залить в `products.embedding`.
