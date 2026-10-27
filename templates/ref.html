@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Генерация по референсам{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Генерация по референсам</h2>
+      <div class="text-secondary mt-1">Загрузка CSV, сопоставление колонок и запуск</div>
+    </div>
+    <div class="col-auto ms-auto">
+      <a href="/tasks" class="btn btn-outline-secondary btn-sm">Все задачи</a>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards">
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header"><h3 class="card-title">Загрузить CSV</h3></div>
+      <div class="card-body">
+        <p class="text-secondary">
+          Колонки: <code>post_title</code> (название), <code>ID</code>, <code>image</code> (URL картинки, опционально),
+          <code>type</code> (standart / storage / post_image / application / all_product).
+        </p>
+        <form id="refUploadForm">
+          <input type="file" id="refCsvFile" class="form-control mb-3" accept=".csv" required>
+          <button type="submit" class="btn btn-primary">Загрузить и сопоставить</button>
+        </form>
+        <div class="form-hint mt-3">
+          После загрузки вы сопоставите колонки, зададите название сайта и запустите генерацию.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card h-100">
+      <div class="card-header"><h3 class="card-title">Типы изображений (type)</h3></div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-4"><code>standart</code></dt><dd class="col-8 text-secondary">Товар на белом фоне, студийное фото.</dd>
+          <dt class="col-4"><code>storage</code></dt><dd class="col-8 text-secondary">Товар на стеллаже склада.</dd>
+          <dt class="col-4"><code>post_image</code></dt><dd class="col-8 text-secondary">Широкий кадр для записи (21:9).</dd>
+          <dt class="col-4"><code>application</code></dt><dd class="col-8 text-secondary">Применение товара строителями.</dd>
+          <dt class="col-4"><code>all_product</code></dt><dd class="col-8 text-secondary">Сразу storage + standart.</dd>
+          <dt class="col-4"><em>пусто</em></dt><dd class="col-8 text-secondary">По умолчанию — standart.</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/ref_index.js?v=1"></script>
+{% endblock %}

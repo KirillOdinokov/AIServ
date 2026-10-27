@@ -495,6 +495,11 @@ def llm_result_page(job_id: str, request: Request):
     return templates.TemplateResponse(request, "llm_result.html", {"active": "llm"})
 
 
+@app.get("/ref", response_class=HTMLResponse)
+def ref_index(request: Request):
+    return templates.TemplateResponse(request, "ref.html", {"active": "refs"})
+
+
 @app.get("/ref/configure/{job_id}", response_class=HTMLResponse)
 def ref_configure_page(job_id: str, request: Request):
     return templates.TemplateResponse(request, "ref_configure.html", {"active": "refs"})
