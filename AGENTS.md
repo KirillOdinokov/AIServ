@@ -237,7 +237,7 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
   `.env`; `main.py` берёт `FLUX_PASSWORD` из окружения (дефолта больше нет).
 - Процесс: правки → `git add` → `git commit` → `git push` (из Windows).
 
-## Сервис «База» (Phase 0 — реализован)
+## Сервис «База» (Phase 0-1 — реализован)
 
 - **PostgreSQL 18** + `pgvector`/`pg_trgm`, БД `base`, роль `base`; креды — в `.env`
   (`BASE_DB_*`). Схема: `base/schema.sql`.
@@ -251,14 +251,33 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
 - Схема: suppliers, sites, products, product_sites, price_lists, price_list_items,
   price_changes, reviews, mapping_memory, site_updates, emails, email_attachments,
   documents/document_chunks (pgvector), chat_sessions/chat_messages.
+- **Расширение под Amalor** (`base/schema_extend_amalor.sql`): `products`
+  (`amalor_id`, `brand`, `supplier_slug`/`supplier_url`, `price`, `price_unit`,
+  `in_stock`, `is_published`, `embedding vector(1024)` + HNSW), `suppliers`
+  (`slug`, `amalor_slug`, `portal_id`, `role`, `website`, `description`),
+  `categories`, `brands`, `supplier_products`, `supplier_aliases`.
+- **Импорт из Amalor (2026-10-27):** 106 960 товаров (100% с поставщиком, 99.6% с
+  категорией, 78% с брендом, 50 660 с ценой), 4 092 категории, 648 брендов,
+  324 поставщика (285 портал + 39 Amalor-only, 96 связаны по slug),
+  106 960 `product_sites` (amalor.ru), 103 023 `supplier_products` (132 поставщика).
+- **Портал:** 95 slug'ов поставщиков заменены на Amalor + 301-редиректы
+  (`apps/database/slug_redirects.py`); бэкапы/скрипты —
+  `/home/enix_admin/ops/supplier-slug-amalor-20261027/`.
+- **Эмбеддинги Amalor (106 928 × 1024) — отложены:** 515 МБ gz, лимит 5 Мбит/с в
+  будни 07–19. Файл: `/tmp/amalor_vectors.csv.gz` на office-сервере; импорт —
+  `products.embedding` (колонка/индекс готовы).
 
-### Дальше (Phase 1+)
-- Импорт каталога из WooCommerce (старт: stekltkani.ru, promtexizol.ru; доступы в
-  `Оптимизация/*/access.txt`).
-- Загрузка прайсов CSV/XLSX, парсинг, матчинг, ревью-очередь, `mapping_memory`.
-- Матчинг: нормализация → exact/trgm/pgvector(bge-m3) → LLM-арбитраж;
-  ≥0.95 авто, 0.5–0.95 на утверждение, <0.5 ручное картирование.
-- Сайты: MVP — WooCommerce REST; затем WP-плагин (pull `/api/base/v1/prices` + ack).
+### Дальше (Phase 2+)
+- Перенести эмбеддинги после 19:00/выходных и залить в `products.embedding`.
+- Импортировать связи портала (17 948 «поставщик↔товар», 17 220 названий) →
+  матчинг названий портала к товарам Amalor (exact/trgm/вектор/LLM) →
+  `supplier_products`; спорные — вручную.
+- Импортировать `price_history` Amalor (212 726) — история цен.
+- Загрузка прайсов CSV/XLSX/PDF/OCR, матчинг, ревью-очередь, `mapping_memory`.
+- Сайты: WooCommerce REST (stekltkani.ru, promtexizol.ru), затем WP-плагин
+  (pull `/api/base/v1/prices` + ack).
+- UI Базы: товары с категорией/брендом/поставщиком/ценой, поиск trgm, страницы
+  категорий/брендов/офферов; чат/RAG.
 - Email: `price@enix.ooo` (IMAP/SMTP), письма Да/Нет.
 - ИИ-чат (плагин `odinokov-ai-chat`) → через Базу, единый ключ DeepSeek, RAG.
 - Режимы: 08–19 — чат (DeepSeek); 19–08 + выходные — batch прайсов (локальный Qwen).
