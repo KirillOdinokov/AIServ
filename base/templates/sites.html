@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Сайты{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Сайты</h2>
+      <div class="text-secondary mt-1">Площадки, на которых размещены товары</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr><th>ID</th><th>Домен</th><th>Название</th><th>Платформа</th><th>Активен</th><th>Создан</th></tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td><a href="https://{{ r.domain }}" target="_blank">{{ r.domain }}</a></td>
+          <td>{{ r.name }}</td>
+          <td class="text-secondary">{{ r.platform }}</td>
+          <td>
+            {% if r.active %}<span class="badge bg-green-lt">да</span>{% else %}<span class="badge bg-secondary-lt">нет</span>{% endif %}
+          </td>
+          <td class="text-secondary">{{ r.created_at.strftime('%d.%m.%Y') if r.created_at else '' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-secondary text-center py-4">Пока нет сайтов</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

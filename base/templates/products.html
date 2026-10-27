@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Товары{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Товары</h2>
+      <div class="text-secondary mt-1">Всего: {{ total }}</div>
+    </div>
+  </div>
+</div>
+
+<form method="get" action="{{ prefix }}/products" class="d-flex gap-2 mb-3" style="max-width:520px;">
+  <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Поиск по названию или SKU">
+  <button class="btn btn-primary">Найти</button>
+  {% if q %}<a href="{{ prefix }}/products" class="btn btn-outline-secondary">Сброс</a>{% endif %}
+</form>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr><th>ID</th><th>SKU</th><th>Название</th><th>Категория</th><th>Ед.</th><th>Вес, кг</th></tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td>{{ r.sku or '—' }}</td>
+          <td>{{ r.name }}</td>
+          <td class="text-secondary">{{ r.category or '—' }}</td>
+          <td class="text-secondary">{{ r.unit or '—' }}</td>
+          <td class="text-secondary">{{ r.weight_kg or '—' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-secondary text-center py-4">Пока нет товаров</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if total > per %}
+<div class="d-flex justify-content-center align-items-center gap-2 mt-3">
+  {% if page > 1 %}<a class="btn btn-outline-secondary btn-sm" href="{{ prefix }}/products?q={{ q }}&page={{ page - 1 }}">Назад</a>{% endif %}
+  <span class="text-secondary">Стр. {{ page }} из {{ ((total - 1) // per) + 1 }}</span>
+  {% if page * per < total %}<a class="btn btn-outline-secondary btn-sm" href="{{ prefix }}/products?q={{ q }}&page={{ page + 1 }}">Далее</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Поставщики{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Поставщики</h2>
+      <div class="text-secondary mt-1">Источники прайсов</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead><tr><th>ID</th><th>Название</th><th>Email</th><th>Создан</th></tr></thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td>{{ r.name }}</td>
+          <td class="text-secondary">{{ r.contact_email or '—' }}</td>
+          <td class="text-secondary">{{ r.created_at.strftime('%d.%m.%Y') if r.created_at else '' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-secondary text-center py-4">Пока нет поставщиков</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

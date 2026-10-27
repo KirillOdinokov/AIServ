@@ -237,22 +237,27 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
   `.env`; `main.py` берёт `FLUX_PASSWORD` из окружения (дефолта больше нет).
 - Процесс: правки → `git add` → `git commit` → `git push` (из Windows).
 
-## Сервис «База» (план, следующая фаза)
+## Сервис «База» (Phase 0 — реализован)
 
-- Отдельный сервис `base` (FastAPI `:8001`, systemd `base.service`), PostgreSQL 18
-  + pgvector + pg_trgm, поддомен `ai.enix.ru` → 109.95.77.86, nginx SNI на 10443,
-  Let's Encrypt. Каталог `/home/kirill/flux/base/`.
-- Данные: товары (SKU, логистика), сайты (WC-ключи), поставщики, прайсы,
-  история цен, ревью-очередь, `mapping_memory`, email, `site_updates`, RAG.
+- **PostgreSQL 18** + `pgvector`/`pg_trgm`, БД `base`, роль `base`; креды — в `.env`
+  (`BASE_DB_*`). Схема: `base/schema.sql`.
+- Код: `base/` (`main.py`, `db.py`, `schema.sql`, `templates/`), systemd `base.service`
+  (`127.0.0.1:8001`, `BASE_PREFIX=/base`).
+- Публично: **`https://ai.enix.ru:10443/base/`** (nginx `location /base/` → 8001,
+  `/base` → 301 `/base/`). Авторизация — тот же `FLUX_USER`/`FLUX_PASSWORD`.
+- Реализовано: обзор (счётчики), товары (поиск/пагинация), сайты, поставщики.
+- Схема: suppliers, sites, products, product_sites, price_lists, price_list_items,
+  price_changes, reviews, mapping_memory, site_updates, emails, email_attachments,
+  documents/document_chunks (pgvector), chat_sessions/chat_messages.
+
+### Дальше (Phase 1+)
+- Импорт каталога из WooCommerce (старт: stekltkani.ru, promtexizol.ru; доступы в
+  `Оптимизация/*/access.txt`).
+- Загрузка прайсов CSV/XLSX, парсинг, матчинг, ревью-очередь, `mapping_memory`.
 - Матчинг: нормализация → exact/trgm/pgvector(bge-m3) → LLM-арбитраж;
-  ≥0.95 авто, 0.5–0.95 на утверждение (письмо Да/Нет), <0.5 ручное картирование.
-- Сайты: MVP — WooCommerce REST (`wp_publish.WpClient`), затем WP-плагин
-  (pull `/api/base/v1/prices` + ack). Старт: stekltkani.ru, promtexizol.ru.
-- ИИ-чат (плагин `odinokov-ai-chat`) → через Базу, единый ключ DeepSeek, RAG
-  документов (PDF/DOCX/XLSX) + история; внутренняя страница чата сотрудников.
-- Режимы: 08–19 пн–пт — чат (DeepSeek, без GPU) + интерактивная генерация;
-  19–08 + выходные — batch прайсов (локальный Qwen) → затем очередь картинок.
-- Канонический SKU: искать в прайсе; если артикул есть и совпал на сайте —
-  обновлять по нему (кэшировать), иначе синхронизировать по названиям; изначально
-  заносить канонические артикулы с сайтов. Объём: ~300k товаров, 0.5–10k/мес.
-- Email: `price@enix.ooo` (Beget, IMAP/SMTP). Примеры прайсов: `example_prices/`.
+  ≥0.95 авто, 0.5–0.95 на утверждение, <0.5 ручное картирование.
+- Сайты: MVP — WooCommerce REST; затем WP-плагин (pull `/api/base/v1/prices` + ack).
+- Email: `price@enix.ooo` (IMAP/SMTP), письма Да/Нет.
+- ИИ-чат (плагин `odinokov-ai-chat`) → через Базу, единый ключ DeepSeek, RAG.
+- Режимы: 08–19 — чат (DeepSeek); 19–08 + выходные — batch прайсов (локальный Qwen).
+- Канонический SKU: из прайса, сверка с сайтом; иначе по названиям.

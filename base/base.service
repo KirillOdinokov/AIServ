@@ -1,0 +1,17 @@
+[Unit]
+Description=AI ENIX Base (FastAPI)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/kirill/flux/base
+EnvironmentFile=/home/kirill/flux/.env
+Environment=BASE_PREFIX=/base
+ExecStart=/home/kirill/flux/.venv/bin/python -m uvicorn main:app --host 127.0.0.1 --port 8001
+Restart=always
+RestartSec=3
+User=kirill
+
+[Install]
+WantedBy=multi-user.target
