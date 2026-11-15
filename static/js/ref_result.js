@@ -15,6 +15,8 @@
   let itemCache = {};
   let lightboxImages = [];
   let lightboxIndex = 0;
+  let page = 0;
+  let pageSize = 100;
   const IMG_STYLE = 'height:180px;width:100%;object-fit:contain;display:block;background:#f8f9fa;';
 
   const lazyObserver = new IntersectionObserver((entries) => {
@@ -148,6 +150,30 @@
     $('btnApprove').style.display = approved > 0 ? '' : 'none';
   }
 
+  function renderPager(total) {
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    if (page > pages - 1) page = pages - 1;
+    const card = $('pagerCard');
+    card.style.display = total > pageSize ? '' : 'none';
+    const sel = $('pageSelect');
+    const html = [];
+    for (let i = 1; i <= pages; i++) {
+      html.push('<option value="' + i + '"' + (i - 1 === page ? ' selected' : '') + '>Страница ' + i + '</option>');
+    }
+    sel.innerHTML = html.join('');
+    $('pageInfo').textContent = 'из ' + pages + ' · всего ' + total;
+    $('btnPrevPage').disabled = page <= 0;
+    $('btnNextPage').disabled = page >= pages - 1;
+  }
+
+  function goToPage(nextPage) {
+    const total = currentJob ? currentJob.items.length : 0;
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    page = Math.max(0, Math.min(pages - 1, nextPage));
+    if (currentJob) renderItems(currentJob);
+    $('itemsList').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   function itemSignature(item) {
     return JSON.stringify({
       a: item.approved_variant_id || null,
@@ -179,13 +205,18 @@
    */
   function updateItemsFromVariants(items) {
     const list = $('itemsList');
+    const total = items.length;
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    if (page > pages - 1) page = pages - 1;
+    const start = page * pageSize;
+    const visible = items.slice(start, start + pageSize);
     const existing = new Map();
     Array.from(list.children).forEach(row => {
       if (row.dataset && row.dataset.item) existing.set(row.dataset.item, row);
     });
     const seen = new Set();
 
-    items.forEach(item => {
+    visible.forEach(item => {
       const meta = itemCache[item.id] || { idx: 0, title: item.id, output_name: item.id, prompt: '',
         source_path: item.source_path, source_site: item.source_site, source_fetched_at: item.source_fetched_at };
       const sig = itemSignature(item);
@@ -210,6 +241,7 @@
     Array.from(list.children).forEach(row => {
       if (row.dataset && row.dataset.item && !seen.has(row.dataset.item)) row.remove();
     });
+    renderPager(total);
   }
 
   function buildRow(idx, itemId, title, outputName, prompt, approved, approvedSource, variants, sourcePath, sourceSite, sourceFetchedAt) {
@@ -521,6 +553,15 @@
     const data = await (await fetch('/api/ref/jobs/' + jobId + '/approve-all', { method: 'POST' })).json();
     if (data.selected === 0) alert('Нет сгенерированных изображений для выбора.');
     await refreshVariants();
+  });
+
+  $('btnPrevPage').addEventListener('click', () => goToPage(page - 1));
+  $('btnNextPage').addEventListener('click', () => goToPage(page + 1));
+  $('pageSelect').addEventListener('change', () => goToPage((parseInt($('pageSelect').value) || 1) - 1));
+  $('pageSize').addEventListener('change', () => {
+    pageSize = parseInt($('pageSize').value) || 100;
+    page = 0;
+    if (currentJob) renderItems(currentJob);
   });
 
   loadJob();

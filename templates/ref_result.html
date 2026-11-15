@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% block title %}AI ENIX — Референсы: результат{% endblock %}
 
 {% block content %}
@@ -34,6 +34,25 @@
   </div>
 </div>
 
+<div class="card mb-3" id="pagerCard" style="display:none">
+  <div class="card-body d-flex flex-wrap gap-2 align-items-center justify-content-between">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+      <button class="btn btn-sm btn-outline-secondary" id="btnPrevPage">← Назад</button>
+      <select id="pageSelect" class="form-select form-select-sm" style="width:auto;"></select>
+      <button class="btn btn-sm btn-outline-secondary" id="btnNextPage">Вперёд →</button>
+      <span class="text-secondary small" id="pageInfo"></span>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      <span class="text-secondary small">На странице</span>
+      <select id="pageSize" class="form-select form-select-sm" style="width:auto;">
+        <option value="50">50</option>
+        <option value="100" selected>100</option>
+        <option value="200">200</option>
+      </select>
+    </div>
+  </div>
+</div>
+
 <div id="itemsList"></div>
 
 <div class="ai-lightbox" id="lightbox">
@@ -45,5 +64,6 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/ref_result.js?v=13"></script>
+<script src="/static/js/ref_result.js?v=14"></script>
 {% endblock %}
+
