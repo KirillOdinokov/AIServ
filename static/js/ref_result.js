@@ -258,7 +258,7 @@
       const siteLabel = sourceSite ? esc(sourceSite) : 'источник';
       const dt = fmtDateTime(sourceFetchedAt);
       sourceHtml = '<div class="col-6 col-md-4 col-xl-3"><div class="card h-100' + (approvedSource ? ' border-primary' : '') + '">' +
-        '<img class="card-img-top" style="' + IMG_STYLE + '" data-src="/api/thumb/' + encodeURI(sourcePath) + '" alt="исходник" data-full="/api/output/' + encodeURI(sourcePath) + '">' +
+        '<img class="card-img-top" decoding="async" style="' + IMG_STYLE + '" data-src="/api/thumb/' + encodeURI(sourcePath) + '" alt="исходник" data-full="/api/output/' + encodeURI(sourcePath) + '">' +
         '<div class="card-body py-1 d-flex justify-content-between align-items-center gap-1">' +
         '<span class="text-secondary small">Исходник · ' + siteLabel + (dt ? ' · ' + dt : '') + '</span>' +
         '<button class="btn ' + (approvedSource ? 'btn-success' : 'btn-outline-secondary') + ' btn-sm" data-approve-source="1">' +
@@ -270,7 +270,7 @@
       const isApproved = v.id === approved;
       let content;
       if (v.status === 'done' && v.filename) {
-        content = '<img class="card-img-top" style="' + IMG_STYLE + '" data-src="/api/thumb/' + encodeURI(v.filename) + '" alt="вариант" data-full="/api/output/' + encodeURI(v.filename) + '">';
+        content = '<img class="card-img-top" decoding="async" style="' + IMG_STYLE + '" data-src="/api/thumb/' + encodeURI(v.filename) + '" alt="вариант" data-full="/api/output/' + encodeURI(v.filename) + '">';
       } else if (v.status === 'error') {
         content = '<div class="d-flex align-items-center justify-content-center text-danger p-2" style="height:180px;">⚠ ' + esc(v.error || 'ошибка') + '</div>';
       } else {
