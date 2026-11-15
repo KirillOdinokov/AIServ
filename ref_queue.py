@@ -6,6 +6,7 @@ from pathlib import Path
 
 import config
 import image_search
+import thumb_utils
 from generator import generator
 from ref_store import ref_store
 
@@ -276,6 +277,7 @@ class RefQueue:
             variant.filename = f"{job_folder}/{variant_folder}/{out_name}"
             variant.status = "done"
             variant.elapsed = round(time.time() - start, 1)
+            thumb_utils.ensure_thumb(out_path, 400)
         except Exception as e:
             variant.status = "error"
             variant.error = str(e)
@@ -368,6 +370,7 @@ class RefQueue:
         if dest.exists() and dest.stat().st_size > 0:
             if item.source_path is None:
                 _store_meta(dest, item.image_url or "")
+            thumb_utils.ensure_thumb(dest, 400)
             return dest
 
         # 2. Явный URL из CSV используем, только если это ПРЯМАЯ ссылка на файл.
@@ -414,6 +417,7 @@ class RefQueue:
                 im = im.convert("RGB")
                 im.save(dest, "PNG")
             _store_meta(dest, source_url or item.image_url or "")
+            thumb_utils.ensure_thumb(dest, 400)
             return dest
         except Exception:
             # fallback: отдаём сырой файл как есть

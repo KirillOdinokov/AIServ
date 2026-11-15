@@ -1395,31 +1395,19 @@ def get_output(filename: str):
 @app.get("/api/thumb/{filename:path}")
 def get_thumb(filename: str, size: int = 400):
     """Уменьшенная копия изображения (thumbnail) для превью — экономит трафик."""
-    from PIL import Image
-    import io as _io
+    import thumb_utils
 
     path = config.OUTPUT_DIR / filename
     if not path.exists():
         raise HTTPException(404, "Файл не найден")
 
     size = max(64, min(1024, size))
-    # кэш-файл рядом с оригиналом (в скрытой папке .thumbs)
-    thumb_dir = config.OUTPUT_DIR / ".thumbs"
-    thumb_path = thumb_dir / f"{size}_{filename}"
-    thumb_path.parent.mkdir(parents=True, exist_ok=True)
+    thumb = thumb_utils.ensure_thumb(path, size)
+    if thumb is None:
+        # если превью не удалось — отдаём оригинал с кэшем
+        return FileResponse(path, headers={"Cache-Control": "public, max-age=3600"})
 
-    if not thumb_path.exists() or thumb_path.stat().st_mtime < path.stat().st_mtime:
-        try:
-            with Image.open(path) as im:
-                im = im.convert("RGB")
-                im.thumbnail((size, size))
-                thumb_path.parent.mkdir(parents=True, exist_ok=True)
-                im.save(thumb_path, "JPEG", quality=70, optimize=True, progressive=True)
-        except Exception:
-            # если не удалось — отдаём оригинал
-            return FileResponse(path, headers={"Cache-Control": "public, max-age=3600"})
-
-    return FileResponse(thumb_path, media_type="image/jpeg",
+    return FileResponse(thumb, media_type="image/jpeg",
                         headers={"Cache-Control": "public, max-age=3600"})
 
 
