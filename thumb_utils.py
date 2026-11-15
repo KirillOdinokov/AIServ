@@ -1,7 +1,7 @@
 """Безопасное создание кэшированных thumbnail-превью."""
 from pathlib import Path
 
-from PIL import Image, PngImagePlugin
+from PIL import Image, ImageFile, PngImagePlugin
 
 import config
 
@@ -9,6 +9,7 @@ import config
 # отказывается его распаковывать и /api/thumb отдаёт многомегабайтный оригинал.
 PngImagePlugin.MAX_TEXT_CHUNK = max(getattr(PngImagePlugin, "MAX_TEXT_CHUNK", 0), 64 * 1024 * 1024)
 PngImagePlugin.MAX_TEXT_MEMORY = max(getattr(PngImagePlugin, "MAX_TEXT_MEMORY", 0), 256 * 1024 * 1024)
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 def thumb_path(filename, size=400):
