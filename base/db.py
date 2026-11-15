@@ -22,3 +22,12 @@ def query(sql, params=None):
         with conn.cursor() as cur:
             cur.execute(sql, params or ())
             return cur.fetchall()
+
+
+def execute(sql, params=None):
+    with connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute(sql, params or ())
+            affected = cur.rowcount
+        conn.commit()
+    return affected

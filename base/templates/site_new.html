@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Новый сайт{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <div class="text-secondary mb-1"><a href="{{ prefix }}/sites">&larr; Сайты</a></div>
+      <h2 class="page-title">Добавить сайт</h2>
+      <div class="text-secondary mt-1">Сайт, телефон для заявок и ответственный менеджер</div>
+    </div>
+  </div>
+</div>
+
+<form class="card" id="newSiteForm">
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Название</label>
+        <input type="text" class="form-control" name="name" required placeholder="Стеклоткани">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Домен</label>
+        <input type="text" class="form-control" name="domain" required placeholder="steklotkani.ru">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Платформа</label>
+        <select class="form-select" name="platform">
+          <option value="woocommerce" selected>WooCommerce</option>
+          <option value="amalor">Amalor</option>
+          <option value="custom">Другая</option>
+        </select>
+      </div>
+      <div class="col-md-8">
+        <label class="form-label">Базовый URL</label>
+        <input type="text" class="form-control" name="base_url" placeholder="https://steklotkani.ru">
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Телефон сайта</label>
+        <input type="text" class="form-control" name="phone" placeholder="+7 (___) ___-__-__">
+      </div>
+      <div class="col-12">
+        <label class="form-label">Менеджеры</label>
+        <div class="border rounded p-2" style="max-height:160px;overflow:auto;">
+          <div class="row g-1">
+            {% for u in users %}
+            <div class="col-md-6">
+              <label class="form-check mb-0">
+                <input class="form-check-input" type="checkbox" name="manager_ids" value="{{ u.portal_id }}">
+                <span class="form-check-label">
+                  {{ u.full_name }}{% if u.department %} · {{ u.department }}{% endif %}{% if u.position %} · {{ u.position }}{% endif %}{% if not u.is_active %} (неактивен){% endif %}
+                </span>
+              </label>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="form-hint">Можно выбрать несколько менеджеров отдела продаж.</div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">
+          Юрлицо
+          <a href="{{ prefix }}/sites/legal-entities" class="text-secondary small fw-normal ms-1" target="_blank">список</a>
+        </label>
+        <input class="form-control" name="legal_entity_text" list="newLegalEntities" placeholder="ООО «...»">
+        <datalist id="newLegalEntities">
+          {% for l in legal_entities %}<option value="{{ l.name }}">{% endfor %}
+        </datalist>
+        <div class="form-hint">Можно ввести своё — добавится в справочник.</div>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">
+          Адрес
+          <a href="{{ prefix }}/sites/addresses" class="text-secondary small fw-normal ms-1" target="_blank">список</a>
+        </label>
+        <input class="form-control" name="address_text" list="newAddresses" placeholder="Город, улица, дом">
+        <datalist id="newAddresses">
+          {% for a in addresses %}<option value="{{ a.full_address }}">{% endfor %}
+        </datalist>
+        <div class="form-hint">Можно ввести свой — добавится в справочник.</div>
+      </div>
+
+      <div class="col-12"><hr class="my-1"></div>
+      <div class="col-md-6">
+        <label class="form-label">Сервер</label>
+        <select class="form-select" name="server_id">
+          <option value="">— не задан —</option>
+          {% for sv in servers %}
+          <option value="{{ sv.id }}">{{ sv.name }}{% if sv.os %} · {{ sv.os }}{% endif %}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Регистратор домена</label>
+        <input type="text" class="form-control" name="domain_registrar" placeholder="Beget">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Аккаунт регистратора</label>
+        <input type="text" class="form-control" name="domain_account" placeholder="odinoknx">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Регистрация домена</label>
+        <input type="date" class="form-control" name="domain_registration_date">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Окончание домена</label>
+        <input type="date" class="form-control" name="domain_expiration_date">
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Режим цены</label>
+        <select class="form-select" name="price_mode">
+          <option value="source">Как в источнике</option>
+          <option value="derived">Наценка</option>
+          <option value="manual">Ручной</option>
+        </select>
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">Наценка, %</label>
+        <input type="number" step="0.01" class="form-control" name="price_markup_pct" value="0">
+      </div>
+
+      <div class="col-12"><div class="hr my-1"></div><div class="text-secondary small">Доступы WooCommerce (можно заполнить позже)</div></div>
+      <div class="col-md-6">
+        <label class="form-label">WP пользователь</label>
+        <input type="text" class="form-control" name="wp_user">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">WP App Password</label>
+        <input type="password" class="form-control" name="wp_app_password" autocomplete="new-password">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">WooCommerce Consumer Key</label>
+        <input type="password" class="form-control" name="wc_key" autocomplete="new-password">
+      </div>
+      <div class="col-md-6">
+        <label class="form-label">WooCommerce Consumer Secret</label>
+        <input type="password" class="form-control" name="wc_secret" autocomplete="new-password">
+      </div>
+
+      <div class="col-12">
+        <label class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="active" checked>
+          <span class="form-check-label">Сайт активен (участвует в мониторинге)</span>
+        </label>
+        <label class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="sync_enabled" checked>
+          <span class="form-check-label">Синхронизация цен включена</span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer d-flex align-items-center">
+    <span class="text-secondary small" id="status"></span>
+    <button type="submit" class="btn btn-primary ms-auto">Добавить сайт</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('newSiteForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const body = {
+      name: fd.get('name'),
+      domain: fd.get('domain'),
+      platform: fd.get('platform'),
+      base_url: fd.get('base_url'),
+      phone: fd.get('phone'),
+      manager_portal_user_ids: [...form.querySelectorAll('[name=manager_ids]:checked')].map((x) => x.value),
+      legal_entity_text: fd.get('legal_entity_text'),
+      address_text: fd.get('address_text'),
+      price_mode: fd.get('price_mode'),
+      price_markup_pct: fd.get('price_markup_pct'),
+      wp_user: fd.get('wp_user'),
+      wp_app_password: fd.get('wp_app_password'),
+      wc_key: fd.get('wc_key'),
+      wc_secret: fd.get('wc_secret'),
+      active: form.querySelector('[name=active]').checked,
+      sync_enabled: form.querySelector('[name=sync_enabled]').checked,
+      server_id: fd.get('server_id') || null,
+      domain_registrar: fd.get('domain_registrar') || null,
+      domain_account: fd.get('domain_account') || null,
+      domain_registration_date: fd.get('domain_registration_date') || null,
+      domain_expiration_date: fd.get('domain_expiration_date') || null,
+    };
+    const st = document.getElementById('status');
+    st.textContent = 'Сохраняю…';
+    try {
+      const res = await fetch('{{ prefix }}/api/sites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+      location.href = '{{ prefix }}/sites/' + data.id;
+    } catch (err) {
+      st.textContent = 'Ошибка: ' + err.message;
+    }
+  });
+</script>
+{% endblock %}

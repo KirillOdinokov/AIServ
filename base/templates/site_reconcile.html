@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Сверка {{ site.name }}{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <div class="text-secondary mb-1"><a href="{{ prefix }}/sites/{{ site.id }}">&larr; {{ site.name }}</a></div>
+      <h2 class="page-title">Сверка с базой</h2>
+      <div class="text-secondary mt-1">
+        {{ site.domain }}{% if supplier %} · поставщик: <b>{{ supplier.name }}</b> ({{ supplier.amalor_slug }}){% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card"><div class="card-body">
+      <div class="text-secondary small">Позиций на сайте</div>
+      <div class="h1 mb-0">{{ site_stats.rows }}</div>
+      <div class="text-secondary small mt-1">сматчено: {{ site_stats.matched }}</div>
+    </div></div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card"><div class="card-body">
+      <div class="text-secondary small">В базе (уникальных названий)</div>
+      <div class="h1 mb-0">{{ base_stats.names }}</div>
+      <div class="text-secondary small mt-1">сматчено: {{ matched_names }} из {{ base_stats.names }} · строк: {{ base_stats.rows }}</div>
+    </div></div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card"><div class="card-body">
+      <div class="text-secondary small">На сайте, но не в базе</div>
+      <div class="h1 mb-0 {{ 'text-danger' if site_unmatched else 'text-success' }}">{{ site_stats.unmatched }}</div>
+      <div class="text-secondary small mt-1">нужно добавить в базу</div>
+    </div></div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card"><div class="card-body">
+      <div class="text-secondary small">В базе, но не на сайте</div>
+      <div class="h1 mb-0 {{ 'text-warning' if missing else 'text-success' }}">{{ missing|length }}</div>
+      <div class="text-secondary small mt-1">нужно добавить на сайт</div>
+    </div></div>
+  </div>
+</div>
+
+{% if site_unmatched %}
+<div class="card mb-3">
+  <div class="card-header"><h3 class="card-title text-danger">На сайте, но не в базе ({{ site_unmatched|length }})</h3></div>
+  <div class="table-responsive">
+    <table class="table table-sm card-table">
+      <thead><tr><th>SKU</th><th>Название</th><th></th></tr></thead>
+      <tbody>
+        {% for r in site_unmatched %}
+        <tr>
+          <td class="text-secondary text-nowrap">{{ r.sku or '—' }}</td>
+          <td>{{ r.name }}</td>
+          <td class="text-end">{% if r.url %}<a href="{{ r.url }}" target="_blank" rel="noopener">на сайте</a>{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if missing %}
+<div class="card mb-3">
+  <div class="card-header"><h3 class="card-title text-warning">В базе, но не на сайте ({{ missing|length }})</h3></div>
+  <div class="table-responsive">
+    <table class="table table-sm card-table">
+      <thead><tr><th>AM SKU</th><th>Артикул</th><th>Название</th><th class="text-end">Цена</th></tr></thead>
+      <tbody>
+        {% for r in missing %}
+        <tr>
+          <td class="text-secondary text-nowrap">{{ r.am_sku or '—' }}</td>
+          <td class="text-secondary text-nowrap">{{ r.msku or '—' }}</td>
+          <td><a href="{{ prefix }}/products?q={{ r.name|urlencode }}">{{ r.name }}</a></td>
+          <td class="text-end">{{ '%.2f'|format(r.price) if r.price is not none else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if dup_skus %}
+<div class="card mb-3">
+  <div class="card-header">
+    <h3 class="card-title text-warning">Одинаковые SKU на сайте ({{ dup_skus|length }})</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm card-table">
+      <thead><tr><th>SKU</th><th>Кол-во</th><th>Названия на сайте</th></tr></thead>
+      <tbody>
+        {% for r in dup_skus %}
+        <tr>
+          <td class="text-nowrap">{{ r.sku_norm }}</td>
+          <td>{{ r.n }}</td>
+          <td class="text-secondary">{{ r.names }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if dup_site_rows %}
+<div class="card mb-3">
+  <div class="card-header">
+    <h3 class="card-title text-secondary">Несколько позиций сайта на один товар базы ({{ dup_site_rows|length }})</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm card-table">
+      <thead><tr><th>AM SKU</th><th>Товар базы</th><th class="text-center">Позиций</th><th>Позиции сайта</th></tr></thead>
+      <tbody>
+        {% for r in dup_site_rows %}
+        <tr>
+          <td class="text-secondary text-nowrap">{{ r.am_sku or '—' }}</td>
+          <td>{{ r.base_name }}</td>
+          <td class="text-center">{{ r.n }}</td>
+          <td class="text-secondary small">{{ r.site_rows }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% if not missing and not site_unmatched and not dup_skus %}
+<div class="alert alert-success">Расхождений по позициям нет: всё, что есть на сайте, найдено в базе, и все позиции поставщика есть на сайте.</div>
+{% elif not missing and not site_unmatched %}
+<div class="alert alert-warning">Все позиции совпадают, но на сайте есть дубли SKU — стоит поправить артикулы на сайте.</div>
+{% endif %}
+
+{% if extra_base_rows %}
+<div class="text-secondary small mt-2">
+  В базе у поставщика есть {{ extra_base_rows }} дополнительных строк-дублей с теми же названиями (Amalor дублирует товары под разными AM-артикулами).
+</div>
+{% endif %}
+{% endblock %}

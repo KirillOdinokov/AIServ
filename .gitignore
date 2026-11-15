@@ -17,18 +17,35 @@ llm_jobs.json
 llm_jobs.json.bak
 ref_jobs.json
 ref_jobs.json.bak
+interior_jobs.json
+interior_jobs.json.bak
 video_jobs.json
 video_jobs.json.bak
 upscale_jobs.json
 upscale_jobs.json.bak
 thumb_jobs.json
+cars_jobs.json
+cars_jobs.json.tmp
+restyle_jobs.json
+restyle_jobs.json.tmp
+restyle_data/
 *.json.bak
 stats_history.jsonl
+metrics.db
+metrics.db-shm
+metrics.db-wal
 output/
 models/
 ComfyUI/
 node_modules/
 example_prices/
+base/uploads/
+
+# ─── Прайс-листы (коммерческие данные) ───────────────────────────────────────
+*.doc
+*.docx
+*.xls
+*.xlsx
 
 # ─── Локальные скретч-скрипты (содержат креды) ─────────────────────────────
 _*.py

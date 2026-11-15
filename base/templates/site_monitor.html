@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — мониторинг сайтов{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center g-2">
+    <div class="col">
+      <h2 class="page-title">Мониторинг сайтов</h2>
+      <div class="text-secondary mt-1">
+        Временная страница: проверка доступности списка сайтов с сервера AI ENIX.
+        Телефоны из исходного списка не включены. Для каждого сайта параллельно
+        проверяются старый IP из снимка и текущий IP. Текущий IP определяется
+        через 1.1.1.1 (DoH), чтобы не зависеть от кэша DNS сервера.
+      </div>
+      <div class="small text-secondary mt-1">Снимок IP: {{ snapshot_created_at or '—' }}</div>
+    </div>
+    <div class="col-auto d-flex align-items-center gap-2">
+      <button class="btn btn-primary" id="monitorRefresh" type="button">
+        <i class="ti ti-refresh me-1"></i> Проверить все
+      </button>
+      <label class="form-check mb-0">
+        <input class="form-check-input" id="monitorAuto" type="checkbox" checked>
+        <span class="form-check-label">Авто 2 мин</span>
+      </label>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-6 col-lg-2">
+    <div class="card"><div class="card-body">
+      <div class="subheader">Всего сайтов</div>
+      <div class="h1 mb-0" id="sumTotal">{{ sites|length }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card"><div class="card-body">
+      <div class="subheader">Доступны сейчас</div>
+      <div class="h1 mb-0 text-green" id="sumOk">—</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card"><div class="card-body">
+      <div class="subheader">Отвечают с ошибкой</div>
+      <div class="h1 mb-0 text-yellow" id="sumWarn">—</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card"><div class="card-body">
+      <div class="subheader">Недоступны</div>
+      <div class="h1 mb-0 text-red" id="sumFail">—</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card"><div class="card-body">
+      <div class="subheader">Средний ответ</div>
+      <div class="h1 mb-0" id="sumAvg">—</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card"><div class="card-body">
+      <div class="subheader">Восстановлено на старом IP</div>
+      <div class="h1 mb-0 text-green" id="sumOldOk">—</div>
+      <div class="small text-secondary" id="sumOldInfo">из {{ sites|length }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-2">
+    <div class="card"><div class="card-body">
+      <div class="subheader">Проверено</div>
+      <div class="small text-secondary" id="checkedAt">ещё не проверялось</div>
+      <div class="small text-secondary" id="checkDuration"></div>
+    </div></div>
+  </div>
+</div>
+
+<div class="alert alert-info mb-3" role="alert">
+  <strong>Как читать таблицу:</strong>
+  «Сейчас (DNS)» — доступность сайта по текущему IP.
+  «Провайдер» — старый IP из снимка. Красный статус в этой колонке означает,
+  что старый сервер ещё не восстановлен, а не то, что сайт недоступен.
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <div class="d-flex flex-wrap align-items-center gap-2 w-100">
+      <h3 class="card-title mb-0">Сайты</h3>
+      <div class="ms-auto d-flex flex-wrap gap-2">
+        <input class="form-control form-control-sm" id="monitorFilter" type="search"
+               placeholder="Фильтр по домену" style="width: 220px;">
+        <select class="form-select form-select-sm" id="monitorGroup" style="width: 150px;">
+          <option value="">Все группы</option>
+          {% for g in groups %}<option value="{{ g }}">{{ g }}</option>{% endfor %}
+        </select>
+        <select class="form-select form-select-sm" id="monitorState" style="width: 170px;">
+          <option value="">Все статусы</option>
+          <option value="pending">Ожидание</option>
+          <option value="ok">Доступен</option>
+          <option value="warn">Отвечает с ошибкой</option>
+          <option value="fail">Недоступен</option>
+        </select>
+      </div>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th style="width:42px;">#</th>
+          <th>Сайт</th>
+          <th>Группа</th>
+          <th style="width:190px;">Сейчас (DNS)</th>
+          <th>Текущий IP</th>
+          <th style="width:190px;">Провайдер</th>
+          <th>Старый IP (снимок)</th>
+          <th>URL / примечание</th>
+        </tr>
+      </thead>
+      <tbody id="monitorRows">
+        {% for s in sites %}
+        <tr data-host="{{ s.host }}" data-group="{{ s.group }}" data-state="pending" data-old-state="pending">
+          <td class="text-secondary">{{ loop.index }}</td>
+          <td><a data-cell="site-link" href="http://{{ s.host }}/" target="_blank" rel="noopener">{{ s.host }}</a></td>
+          <td class="text-secondary">{{ s.group }}</td>
+          <td data-cell="status"><span class="badge bg-secondary-lt">Ожидание</span></td>
+          <td data-cell="current-ip" class="text-secondary">—</td>
+          <td data-cell="old-status"><span class="badge bg-secondary-lt">Ожидание</span></td>
+          <td data-cell="old-ip" class="text-secondary">{{ s.old_ips|join(', ') if s.old_ips else '—' }}</td>
+          <td data-cell="url" class="text-secondary">—</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="text-secondary small mt-3" id="monitorMessage">
+  Нажмите «Проверить все». Проверка идёт параллельно и может занять до двух минут.
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const PREFIX = {{ prefix|tojson }};
+  const btn = document.getElementById('monitorRefresh');
+  const rowsEl = document.getElementById('monitorRows');
+  const filterEl = document.getElementById('monitorFilter');
+  const groupEl = document.getElementById('monitorGroup');
+  const stateEl = document.getElementById('monitorState');
+  const messageEl = document.getElementById('monitorMessage');
+  const rows = Array.from(rowsEl.querySelectorAll('tr'));
+  let running = false;
+  let monitorTimer = null;
+  const oldPrev = new Map();
+  let oldInitialized = false;
+
+  const states = {
+    pending: { label: 'Ожидание', cls: 'bg-secondary-lt' },
+    ok: { label: 'Доступен', cls: 'bg-green-lt' },
+    warn: { label: 'Отвечает с ошибкой', cls: 'bg-yellow-lt' },
+    fail: { label: 'Недоступен', cls: 'bg-red-lt' },
+  };
+
+  const oldStates = {
+    pending: { label: 'Ожидание', cls: 'bg-secondary-lt' },
+    ok: { label: 'Провайдер восстановлен', cls: 'bg-green-lt' },
+    warn: { label: 'Отвечает с ошибкой', cls: 'bg-yellow-lt' },
+    fail: { label: 'Старый IP ещё не отвечает', cls: 'bg-red-lt' },
+    unknown: { label: 'Нет IP в снимке', cls: 'bg-secondary-lt' },
+  };
+
+  function esc(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    })[ch]);
+  }
+
+  function applyFilter() {
+    const q = filterEl.value.trim().toLowerCase();
+    const group = groupEl.value;
+    const state = stateEl.value;
+    rows.forEach((tr) => {
+      const visible = (!q || tr.dataset.host.toLowerCase().includes(q))
+        && (!group || tr.dataset.group === group)
+        && (!state || tr.dataset.state === state);
+      tr.hidden = !visible;
+    });
+  }
+
+  function playBeep() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.value = 0.12;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      setTimeout(() => { osc.stop(); ctx.close(); }, 700);
+    } catch (e) {}
+  }
+
+  function notifyOldRecovery(hosts) {
+    const shown = hosts.slice(0, 6).join(', ');
+    const suffix = hosts.length > 6 ? ' и ещё ' + (hosts.length - 6) : '';
+    messageEl.classList.remove('text-red');
+    messageEl.classList.add('text-green');
+    messageEl.textContent = 'Провайдер восстановил: ' + shown + suffix;
+    document.title = 'Провайдер восстановил сайты! — AI ENIX';
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification('Провайдер восстановил сайты', {
+          body: shown + suffix,
+          tag: 'provider-sites-recovered',
+          requireInteraction: true,
+        });
+      } catch (e) {}
+    }
+    playBeep();
+  }
+
+  function render(data) {
+    const byHost = new Map(data.results.map((r) => [r.host, r]));
+    const recovered = [];
+    rows.forEach((tr) => {
+      const r = byHost.get(tr.dataset.host);
+      if (!r) return;
+      tr.dataset.state = r.state;
+      const meta = states[r.state] || states.pending;
+      let statusHtml = '<span class="badge ' + meta.cls + '">' + meta.label + '</span>';
+      if (r.status_code != null) {
+        statusHtml += '<div class="small text-secondary mt-1">HTTP ' + r.status_code
+          + (r.ms == null ? '' : ' · ' + r.ms + ' мс') + '</div>';
+      }
+      if (r.note) statusHtml += '<div class="small text-secondary mt-1">' + esc(r.note) + '</div>';
+      tr.querySelector('[data-cell="status"]').innerHTML = statusHtml;
+
+      const siteLink = tr.querySelector('[data-cell="site-link"]');
+      if (siteLink && r.url) siteLink.href = r.url;
+
+      const old = r.old || { state: 'unknown' };
+      const oldMeta = oldStates[old.state] || oldStates.unknown;
+      tr.dataset.oldState = old.state;
+      let oldHtml = '<span class="badge ' + oldMeta.cls + '">' + oldMeta.label + '</span>';
+      if (old.status_code != null) {
+        oldHtml += '<div class="small text-secondary mt-1">HTTP ' + old.status_code
+          + (old.ms == null ? '' : ' · ' + old.ms + ' мс') + '</div>';
+      }
+      if (old.note) oldHtml += '<div class="small text-secondary mt-1">' + esc(old.note) + '</div>';
+      if (old.error) oldHtml += '<div class="small text-red mt-1">' + esc(old.error) + '</div>';
+      tr.querySelector('[data-cell="old-status"]').innerHTML = oldHtml;
+      tr.querySelector('[data-cell="old-ip"]').textContent =
+        (r.old_ips && r.old_ips.length) ? r.old_ips.join(', ') : '—';
+      tr.querySelector('[data-cell="current-ip"]').textContent = r.current_ip || '—';
+
+      const urlCell = tr.querySelector('[data-cell="url"]');
+      if (r.url) {
+        let html = '<a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.url) + '</a>';
+        if (r.note) html += '<div class="small text-secondary mt-1">' + esc(r.note) + '</div>';
+        if (r.error) html += '<div class="small text-red mt-1">' + esc(r.error) + '</div>';
+        urlCell.innerHTML = html;
+      } else {
+        urlCell.innerHTML = '<span class="text-red">' + esc(r.error || 'ошибка') + '</span>';
+      }
+
+      const prev = oldPrev.get(r.host);
+      if (prev && prev !== 'ok' && old.state === 'ok') recovered.push(r.host);
+      oldPrev.set(r.host, old.state);
+    });
+
+    const s = data.summary || {};
+    document.getElementById('sumTotal').textContent = s.total != null ? s.total : rows.length;
+    document.getElementById('sumOk').textContent = s.ok != null ? s.ok : '—';
+    document.getElementById('sumWarn').textContent = s.warn != null ? s.warn : '—';
+    document.getElementById('sumFail').textContent = s.fail != null ? s.fail : '—';
+    document.getElementById('sumAvg').textContent = s.avg_ms == null ? '—' : s.avg_ms + ' мс';
+    document.getElementById('sumOldOk').textContent = s.old_ok != null ? s.old_ok : '—';
+    const oldBad = (s.old_fail || 0) + (s.old_unknown || 0);
+    document.getElementById('sumOldInfo').textContent =
+      'из ' + (s.total != null ? s.total : rows.length) + (oldBad ? ' · нет: ' + oldBad : '');
+    const checked = data.checked_at ? new Date(data.checked_at) : null;
+    document.getElementById('checkedAt').textContent = checked
+      ? checked.toLocaleString('ru-RU')
+      : 'ещё не проверялось';
+    document.getElementById('checkDuration').textContent = data.duration_ms == null
+      ? ''
+      : 'за ' + Math.round(data.duration_ms / 1000) + ' с';
+    messageEl.classList.remove('text-red', 'text-green');
+    messageEl.textContent = 'Проверка завершена. Доступны сейчас: '
+      + (s.ok != null ? s.ok : '—') + ' из ' + rows.length
+      + '; старый IP провайдера отвечает: ' + (s.old_ok != null ? s.old_ok : '—') + '.';
+    if (oldInitialized && recovered.length) notifyOldRecovery(recovered);
+    oldInitialized = true;
+    applyFilter();
+  }
+
+  async function run() {
+    if (running) return;
+    running = true;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Проверяю…';
+    messageEl.textContent = 'Проверяю сайты: ' + rows.length + '… Это может занять до двух минут.';
+    try {
+      const res = await fetch(PREFIX + '/api/monitor/check', { method: 'POST' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      render(await res.json());
+    } catch (e) {
+      messageEl.textContent = 'Ошибка проверки: ' + e.message;
+      messageEl.classList.add('text-red');
+    } finally {
+      running = false;
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-refresh me-1"></i> Проверить все';
+    }
+  }
+
+
+  const monitorAuto = document.getElementById('monitorAuto');
+  function scheduleMonitor() {
+    if (monitorTimer) clearInterval(monitorTimer);
+    if (monitorAuto.checked) monitorTimer = setInterval(run, 120000);
+  }
+  if (localStorage.getItem('siteWatchMonitorAuto') === '0') monitorAuto.checked = false;
+  monitorAuto.addEventListener('change', () => {
+    localStorage.setItem('siteWatchMonitorAuto', monitorAuto.checked ? '1' : '0');
+    scheduleMonitor();
+  });
+  scheduleMonitor();
+
+  btn.addEventListener('click', run);
+  filterEl.addEventListener('input', applyFilter);
+  groupEl.addEventListener('change', applyFilter);
+  stateEl.addEventListener('change', applyFilter);
+  run();
+})();
+</script>
+{% endblock %}

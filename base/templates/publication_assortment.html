@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Публикация: расширение ассортимента{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Публикация</h2>
+      <div class="text-secondary mt-1">Расширение ассортимента — задачи по несопоставленным товарам из прайсов</div>
+    </div>
+    <div class="col-auto ms-auto d-print-none">
+      <a href="{{ prefix }}/prices" class="btn btn-outline-secondary">К прайсам</a>
+    </div>
+  </div>
+</div>
+
+<div class="alert alert-info py-2">
+  Задачи создаются из карточки прайса кнопкой <b>«В расширение ассортимента»</b>.
+  Сохраняются все данные строки: название, артикул, цены по колонкам, раздел, ГОСТ/ТУ, область применения и исходная строка.
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th style="width:60px;">#</th>
+          <th>Задача</th>
+          <th>Поставщик</th>
+          <th>Прайс</th>
+          <th class="text-end">Строк</th>
+          <th>Статус</th>
+          <th>Создана</th>
+          <th style="width:110px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="text-secondary">{{ r.id }}</td>
+          <td>
+            <div class="fw-bold">{{ r.title or 'Расширение ассортимента' }}</div>
+            {% if r.meta and r.meta.get('price_date') %}
+            <div class="text-secondary small">прайс от {{ r.meta.get('price_date')[:10] }}</div>
+            {% endif %}
+          </td>
+          <td>{{ r.supplier_name or '—' }}</td>
+          <td class="text-secondary small">{{ r.filename or '—' }}</td>
+          <td class="text-end">{{ r.items_total }}</td>
+          <td>
+            {% set st = r.status %}
+            <span class="badge {% if st in ['done', 'published'] %}bg-green-lt{% elif st in ['new'] %}bg-blue-lt{% elif st in ['rejected'] %}bg-red-lt{% else %}bg-yellow-lt{% endif %}">
+              {% if st == 'new' %}новая{% elif st == 'in_progress' %}в работе{% elif st == 'done' %}готова{% elif st == 'published' %}опубликована{% elif st == 'rejected' %}отклонена{% else %}{{ st }}{% endif %}
+            </span>
+          </td>
+          <td class="text-secondary small">{{ r.created_at.strftime('%d.%m.%Y %H:%M') if r.created_at else '—' }}</td>
+          <td class="text-end">
+            <a href="{{ prefix }}/publication/assortment/{{ r.id }}" class="btn btn-sm btn-outline-secondary">Открыть</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="8" class="text-center text-secondary py-5">
+            Задач пока нет. Откройте прайс и нажмите «В расширение ассортимента».
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,821 @@
+{
+  "created_at": "2026-11-04T07:03:22.373402+00:00",
+  "hosts": {
+    "www.enix.ru": {
+      "ascii": "www.enix.ru",
+      "ips": [
+        "193.176.78.3"
+      ]
+    },
+    "enix.ru.com": {
+      "ascii": "enix.ru.com",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.geosintetika.moscow": {
+      "ascii": "www.geosintetika.moscow",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.геосинтетика.москва": {
+      "ascii": "www.xn--80afgaobovh4anb.xn--80adxhks",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "izoru.ru": {
+      "ascii": "izoru.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "vodolot.ru": {
+      "ascii": "vodolot.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.pologprom.ru": {
+      "ascii": "www.pologprom.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.soudal.enix.ru": {
+      "ascii": "www.soudal.enix.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.vilpe-croco.ru": {
+      "ascii": "www.vilpe-croco.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.руфикс.рф": {
+      "ascii": "www.xn--h1aeqghg.xn--p1ai",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.изорок.москва": {
+      "ascii": "www.xn--g1abhpal.xn--80adxhks",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.steklotkan-t.ru": {
+      "ascii": "www.steklotkan-t.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.tekhnoelast.ru": {
+      "ascii": "www.tekhnoelast.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.gidroshponki.ru": {
+      "ascii": "www.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.зеленые-кровли.москва": {
+      "ascii": "www.xn----dtbhaajmoffrpz4m.xn--80adxhks",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.aquashponka.ru": {
+      "ascii": "www.aquashponka.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.rock-trade.ru": {
+      "ascii": "www.rock-trade.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.wilaterm.ru": {
+      "ascii": "www.wilaterm.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.фиксатор-арматуры.рф": {
+      "ascii": "www.xn----7sbba0bmrnsccdohpc8k.xn--p1ai",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.waterkeys.ru": {
+      "ascii": "www.waterkeys.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.пвх-мембраны.рф": {
+      "ascii": "www.xn----8sbccq5bbkkq3cye.xn--p1ai",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.steklotkani.ru": {
+      "ascii": "www.steklotkani.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "роксы.рф": {
+      "ascii": "xn--j1ahfg4c.xn--p1ai",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.hidroshponki.ru": {
+      "ascii": "www.hidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.pvc-membrana.ru": {
+      "ascii": "www.pvc-membrana.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.bentoprofil.ru": {
+      "ascii": "www.bentoprofil.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.plastfix.ru": {
+      "ascii": "www.plastfix.ru",
+      "ips": [
+        "77.222.40.83"
+      ]
+    },
+    "vilatherm.ru": {
+      "ascii": "vilatherm.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "rock-sale.ru": {
+      "ascii": "rock-sale.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "vilpe-roofing.ru": {
+      "ascii": "vilpe-roofing.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "fasten-trade.ru": {
+      "ascii": "fasten-trade.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "gerniit.ru": {
+      "ascii": "gerniit.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "mapei.moscow": {
+      "ascii": "mapei.moscow",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "siksmes.ru": {
+      "ascii": "siksmes.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "semacos.ru": {
+      "ascii": "semacos.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "rex.moscow": {
+      "ascii": "rex.moscow",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "fachmann.moscow": {
+      "ascii": "fachmann.moscow",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "huntsman-rus.ru": {
+      "ascii": "huntsman-rus.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "emaco-sika.ru": {
+      "ascii": "emaco-sika.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.gernitprofil.ru": {
+      "ascii": "www.gernitprofil.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "fahmann.ru": {
+      "ascii": "fahmann.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "vodoo.ru": {
+      "ascii": "vodoo.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "авто-линолеум.рф": {
+      "ascii": "xn----7sbgnorbjgge6bv.xn--p1ai",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "ogneiz.ru": {
+      "ascii": "ogneiz.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "waterstop-rx.ru": {
+      "ascii": "waterstop-rx.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.gidrogarants.ru": {
+      "ascii": "www.gidrogarants.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.gidroshponki.spb.ru": {
+      "ascii": "www.gidroshponki.spb.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "venti.spb.ru": {
+      "ascii": "venti.spb.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.shponki-aquastop.ru": {
+      "ascii": "www.shponki-aquastop.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.stroishov.ru": {
+      "ascii": "www.stroishov.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.gidro-shponka.ru": {
+      "ascii": "www.gidro-shponka.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.gernit-bentonit.ru": {
+      "ascii": "www.gernit-bentonit.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.exjoint.ru": {
+      "ascii": "www.exjoint.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.hidroshponka.ru": {
+      "ascii": "www.hidroshponka.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "decopran.ru": {
+      "ascii": "decopran.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.waterbar.ru": {
+      "ascii": "www.waterbar.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.waterbars.ru": {
+      "ascii": "www.waterbars.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.gidro-shponki.ru": {
+      "ascii": "www.gidro-shponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.besaflex.ru": {
+      "ascii": "www.besaflex.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.nitriflex.ru": {
+      "ascii": "www.nitriflex.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.elastoflex.ru": {
+      "ascii": "www.elastoflex.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.sikaplan.ru": {
+      "ascii": "www.sikaplan.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "brit.moscow": {
+      "ascii": "brit.moscow",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "sika-pro.ru": {
+      "ascii": "sika-pro.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "autolin.ru": {
+      "ascii": "autolin.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "breet.ru": {
+      "ascii": "breet.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "tclp.ru": {
+      "ascii": "tclp.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "tekrep.ru": {
+      "ascii": "tekrep.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "vilps.ru": {
+      "ascii": "vilps.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "x-anker.ru": {
+      "ascii": "x-anker.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "mktep.ru": {
+      "ascii": "mktep.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "termoanker.ru": {
+      "ascii": "termoanker.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "him-krep.ru": {
+      "ascii": "him-krep.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "scorpfast.ru": {
+      "ascii": "scorpfast.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "ze-roof.ru": {
+      "ascii": "ze-roof.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "www.gidrokontur.ru": {
+      "ascii": "www.gidrokontur.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "www.geoisol.ru": {
+      "ascii": "www.geoisol.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "брит.рф": {
+      "ascii": "xn--90aoxj.xn--p1ai",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "дефлекс.рф": {
+      "ascii": "xn--d1acaud2br.xn--p1ai",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "promtexizol.ru": {
+      "ascii": "promtexizol.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "vodoluk.ru": {
+      "ascii": "vodoluk.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "gernit.ru": {
+      "ascii": "gernit.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "vilaterm.ru": {
+      "ascii": "vilaterm.ru",
+      "ips": [
+        "45.130.41.109"
+      ]
+    },
+    "redstop.ru": {
+      "ascii": "redstop.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "deformix.ru": {
+      "ascii": "deformix.ru",
+      "ips": [
+        "195.189.19.124"
+      ]
+    },
+    "arhangelsk.gidroshponki.ru": {
+      "ascii": "arhangelsk.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "astrahan.gidroshponki.ru": {
+      "ascii": "astrahan.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "barnaul.gidroshponki.ru": {
+      "ascii": "barnaul.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "bryansk.gidroshponki.ru": {
+      "ascii": "bryansk.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "chelny.gidroshponki.ru": {
+      "ascii": "chelny.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "chita.gidroshponki.ru": {
+      "ascii": "chita.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "donetsk.gidroshponki.ru": {
+      "ascii": "donetsk.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "aquashov.ru": {
+      "ascii": "aquashov.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "odinokova.ru": {
+      "ascii": "odinokova.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "alpinizm.pro": {
+      "ascii": "alpinizm.pro",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "office.enix.ru": {
+      "ascii": "office.enix.ru",
+      "ips": [
+        "195.189.19.124"
+      ]
+    },
+    "amalor.ru": {
+      "ascii": "amalor.ru",
+      "ips": [
+        "195.189.19.124"
+      ]
+    },
+    "belgorod.gidroshponki.ru": {
+      "ascii": "belgorod.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "grozny.gidroshponki.ru": {
+      "ascii": "grozny.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "habarovsk.gidroshponki.ru": {
+      "ascii": "habarovsk.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "himki.gidroshponki.ru": {
+      "ascii": "himki.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "ivanovo.gidroshponki.ru": {
+      "ascii": "ivanovo.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "izhevsk.gidroshponki.ru": {
+      "ascii": "izhevsk.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "kaliningrad.gidroshponki.ru": {
+      "ascii": "kaliningrad.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "kaluga.gidroshponki.ru": {
+      "ascii": "kaluga.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "kirov.gidroshponki.ru": {
+      "ascii": "kirov.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "kostroma.gidroshponki.ru": {
+      "ascii": "kostroma.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "kursk.gidroshponki.ru": {
+      "ascii": "kursk.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "lipezk.gidroshponki.ru": {
+      "ascii": "lipezk.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "luberzy.gidroshponki.ru": {
+      "ascii": "luberzy.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "lugansk.gidroshponki.ru": {
+      "ascii": "lugansk.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "mahachkala.gidroshponki.ru": {
+      "ascii": "mahachkala.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "mariupol.gidroshponki.ru": {
+      "ascii": "mariupol.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "penza.gidroshponki.ru": {
+      "ascii": "penza.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "rostov.gidroshponki.ru": {
+      "ascii": "rostov.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "ryazan.gidroshponki.ru": {
+      "ascii": "ryazan.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "saratov.gidroshponki.ru": {
+      "ascii": "saratov.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "sevastopol.gidroshponki.ru": {
+      "ascii": "sevastopol.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "simferopol.gidroshponki.ru": {
+      "ascii": "simferopol.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "smolensk.gidroshponki.ru": {
+      "ascii": "smolensk.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "sochi.gidroshponki.ru": {
+      "ascii": "sochi.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "stavropol.gidroshponki.ru": {
+      "ascii": "stavropol.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "tagil.gidroshponki.ru": {
+      "ascii": "tagil.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "toliatti.gidroshponki.ru": {
+      "ascii": "toliatti.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "tula.gidroshponki.ru": {
+      "ascii": "tula.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "tumen.gidroshponki.ru": {
+      "ascii": "tumen.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "tver.gidroshponki.ru": {
+      "ascii": "tver.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "ulan-ude.gidroshponki.ru": {
+      "ascii": "ulan-ude.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "vladikavkaz.gidroshponki.ru": {
+      "ascii": "vladikavkaz.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "vladimir.gidroshponki.ru": {
+      "ascii": "vladimir.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "vladivostok.gidroshponki.ru": {
+      "ascii": "vladivostok.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "volgograd.gidroshponki.ru": {
+      "ascii": "volgograd.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "voronezh.gidroshponki.ru": {
+      "ascii": "voronezh.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "yaroslavl.gidroshponki.ru": {
+      "ascii": "yaroslavl.gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "gidroshponki.ru": {
+      "ascii": "gidroshponki.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    },
+    "aquashponka.ru": {
+      "ascii": "aquashponka.ru",
+      "ips": [
+        "45.130.41.41"
+      ]
+    }
+  }
+}

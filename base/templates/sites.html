@@ -21,7 +21,7 @@
         {% for r in rows %}
         <tr>
           <td>{{ r.id }}</td>
-          <td><a href="https://{{ r.domain }}" target="_blank">{{ r.domain }}</a></td>
+          <td><a href="{{ prefix }}/sites/{{ r.id }}">{{ r.domain }}</a></td>
           <td>{{ r.name }}</td>
           <td class="text-secondary">{{ r.platform }}</td>
           <td>

@@ -9,6 +9,7 @@
     running: ['Генерация', 'bg-blue-lt'],
     done: ['Готово', 'bg-green-lt'],
     error: ['Ошибка', 'bg-red-lt'],
+    stopped: ['Остановлено', 'bg-orange-lt'],
   };
   const TYPE_LABEL = { image: 'Изображения', text: 'Тексты', reference: 'Референсы', upscale: 'Upscale' };
   const TYPE_BADGE = { image: 'bg-blue-lt', text: 'bg-purple-lt', reference: 'bg-azure-lt', upscale: 'bg-teal-lt' };
@@ -56,8 +57,12 @@
         const isActive = j.status === 'running' || j.status === 'queued';
         let pauseBtn = '';
         if (j.type !== 'upscale') {
-          if (j.paused) pauseBtn = '<button class="btn btn-sm btn-outline-success" data-resume="' + j.id + '" data-type="' + j.type + '" title="Возобновить"><i class="ti ti-player-play"></i></button>';
+          if (j.paused || j.status === 'stopped') pauseBtn = '<button class="btn btn-sm btn-outline-success" data-resume="' + j.id + '" data-type="' + j.type + '" title="Возобновить"><i class="ti ti-player-play"></i></button>';
           else if (isActive) pauseBtn = '<button class="btn btn-sm btn-outline-secondary" data-pause="' + j.id + '" data-type="' + j.type + '" title="Пауза"><i class="ti ti-player-pause"></i></button>';
+        }
+        let stopBtn = '';
+        if ((j.type === 'image' || j.type === 'reference') && (isActive || j.paused)) {
+          stopBtn = '<button class="btn btn-sm btn-outline-danger" data-stop="' + j.id + '" data-type="' + j.type + '" title="Остановить"><i class="ti ti-player-stop"></i></button>';
         }
         const url = resultUrl(j);
         const configureUrl = j.type === 'reference' ? '/ref/configure/' + j.id : '/configure/' + j.id;
@@ -73,7 +78,7 @@
           '<td class="text-secondary">' + eta + '</td>' +
           '<td><span class="badge ' + stBadge + '">' + esc(stLabel) + '</span></td>' +
           '<td class="text-secondary">' + fmtDate(j.created_at) + '</td>' +
-          '<td class="text-end"><div class="btn-list flex-nowrap">' + openBtn + pauseBtn +
+          '<td class="text-end"><div class="btn-list flex-nowrap">' + openBtn + pauseBtn + stopBtn +
           '<button class="btn btn-sm btn-outline-danger" data-del="' + j.id + '" data-type="' + j.type + '" title="Удалить"><i class="ti ti-trash"></i></button></div></td>';
         body.appendChild(tr);
       }
@@ -112,6 +117,16 @@
         const url = t === 'text' ? '/api/llm/jobs/' + btn.dataset.resume + '/resume'
           : t === 'reference' ? '/api/ref/jobs/' + btn.dataset.resume + '/resume'
             : '/api/jobs/' + btn.dataset.resume + '/resume';
+        await fetch(url, { method: 'POST' });
+        loadTasks();
+      });
+    });
+    body.querySelectorAll('[data-stop]').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('Остановить задачу?')) return;
+        const t = btn.dataset.type;
+        const url = t === 'reference' ? '/api/ref/jobs/' + btn.dataset.stop + '/stop'
+          : '/api/jobs/' + btn.dataset.stop + '/stop';
         await fetch(url, { method: 'POST' });
         loadTasks();
       });

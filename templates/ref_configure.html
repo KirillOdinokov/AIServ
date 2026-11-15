@@ -14,6 +14,14 @@
 <div class="card mb-3" style="max-width:820px;">
   <div class="card-body">
     <div class="mb-3">
+      <label class="form-check">
+        <input class="form-check-input" type="checkbox" id="chkClean">
+        <span class="form-check-label">Clean по референсам — белый фон 1:1, без водяных знаков, дефектов и любых надписей</span>
+      </label>
+      <div class="form-hint">Для всех строк будет применён тип clean: товар сохраняется «как есть», добавляется профессиональный свет, удаляются водяные знаки и мусор. Название сайта в этом режиме не наносится.</div>
+    </div>
+
+    <div class="mb-3">
       <label class="form-label" for="siteName">Название сайта (вшивается в изображение)</label>
       <input type="text" id="siteName" class="form-control" placeholder="например: stroy-mag.ru">
       <div class="form-hint">Наносится на товар / этикетку / спецодежду в зависимости от типа изображения.</div>
@@ -72,7 +80,7 @@
           </tbody>
         </table>
         <h4>3. Типы изображений</h4>
-        <p><code>standart</code> — товар на белом фоне; <code>storage</code> — на стеллаже склада; <code>post_image</code> — широкий кадр для записи; <code>application</code> — применение строителями; <code>all_product</code> — storage + standart.</p>
+        <p><code>standart</code> — товар на белом фоне; <code>storage</code> — на стеллаже склада; <code>post_image</code> — широкий кадр для записи; <code>application</code> — применение строителями; <code>clean</code> — товар «как есть» на белом фоне 1:1, профессиональный свет, без водяных знаков, дефектов и новых надписей; <code>all_product</code> — storage + standart.</p>
         <h4>4. Откуда берётся референс</h4>
         <p>Если в <code>image</code> указана ссылка — используется она; иначе картинка ищется автоматически по названию (DuckDuckGo, самое крупное изображение).</p>
         <h4>5. Результат</h4>
@@ -84,5 +92,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/ref_configure.js?v=2"></script>
+<script src="/static/js/ref_configure.js?v=3"></script>
 {% endblock %}

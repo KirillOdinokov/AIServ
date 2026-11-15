@@ -6,7 +6,7 @@
   <title>{% block title %}AI ENIX{% endblock %}</title>
   <link rel="stylesheet" href="/static/vendor/tabler/tabler.min.css">
   <link rel="stylesheet" href="/static/vendor/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/static/css/ai-enix.css?v=3">
+  <link rel="stylesheet" href="/static/css/ai-enix.css?v=4">
   <link rel="icon" type="image/png" href="/static/img/logo.png">
   {% block head %}{% endblock %}
 </head>
@@ -14,8 +14,8 @@
 <div class="page">
   <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
     <div class="container-fluid d-flex flex-column h-100">
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu" aria-controls="sidebar-menu" aria-expanded="false" aria-label="Меню">
-        <span class="navbar-toggler-icon"></span>
+      <button class="navbar-toggler mobile-nav-close" type="button" id="mobileNavClose" aria-label="Закрыть меню">
+        <i class="ti ti-x"></i>
       </button>
       <h1 class="navbar-brand navbar-brand-autodark mb-0">
         <a href="/" class="text-decoration-none d-block">
@@ -61,7 +61,7 @@
               <span class="nav-link-title">Файлы</span>
             </a>
           </li>
-          <li class="nav-item dropdown {% if active in ['base_dashboard','base_products','base_sites','base_suppliers'] %}active{% endif %}">
+          <li class="nav-item dropdown {% if active in ['base_dashboard','base_products','base_review','base_sites','base_suppliers'] %}active{% endif %}">
             <a class="nav-link dropdown-toggle" href="#base" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button" aria-expanded="false">
               <span class="nav-link-icon"><i class="ti ti-database"></i></span>
               <span class="nav-link-title">База</span>
@@ -69,9 +69,41 @@
             <div class="dropdown-menu">
               <a class="dropdown-item {% if active == 'base_dashboard' %}active{% endif %}" href="/base/">Обзор</a>
               <a class="dropdown-item {% if active == 'base_products' %}active{% endif %}" href="/base/products">Товары</a>
+              <a class="dropdown-item {% if active == 'base_review' %}active{% endif %}" href="/base/review">Ревью</a>
               <a class="dropdown-item {% if active == 'base_sites' %}active{% endif %}" href="/base/sites">Сайты</a>
               <a class="dropdown-item {% if active == 'base_suppliers' %}active{% endif %}" href="/base/suppliers">Поставщики</a>
             </div>
+          </li>
+          <li class="nav-item dropdown {% if active in ['prices', 'price_new', 'price_task'] %}active{% endif %}">
+            <a class="nav-link dropdown-toggle" href="#prices" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button" aria-expanded="false">
+              <span class="nav-link-icon"><i class="ti ti-receipt"></i></span>
+              <span class="nav-link-title">Прайсы</span>
+            </a>
+            <div class="dropdown-menu">
+              <a class="dropdown-item {% if active == 'price_new' %}active{% endif %}" href="{{ prefix }}/prices/new">Добавить прайс</a>
+              <a class="dropdown-item {% if active == 'prices' %}active{% endif %}" href="{{ prefix }}/prices">Задачи</a>
+            </div>
+          </li>
+          <li class="nav-item dropdown {% if active in ['publication', 'publication_assortment', 'publication_task'] %}active{% endif %}">
+            <a class="nav-link dropdown-toggle" href="#publication" data-bs-toggle="dropdown" data-bs-auto-close="false" role="button" aria-expanded="false">
+              <span class="nav-link-icon"><i class="ti ti-send"></i></span>
+              <span class="nav-link-title">Публикация</span>
+            </a>
+            <div class="dropdown-menu">
+              <a class="dropdown-item {% if active == 'publication_assortment' %}active{% endif %}" href="{{ prefix }}/publication/assortment">Расширение ассортимента</a>
+            </div>
+          </li>
+          <li class="nav-item {% if active == 'sites' %}active{% endif %}">
+            <a class="nav-link" href="/base/sites">
+              <span class="nav-link-icon"><i class="ti ti-world"></i></span>
+              <span class="nav-link-title">Сайты</span>
+            </a>
+          </li>
+          <li class="nav-item {% if active == 'site_monitor' %}active{% endif %}">
+            <a class="nav-link" href="{{ prefix }}/monitor">
+              <span class="nav-link-icon"><i class="ti ti-activity"></i></span>
+              <span class="nav-link-title">Мониторинг сайтов</span>
+            </a>
           </li>
           <li class="nav-item {% if active == 'server' %}active{% endif %}">
             <a class="nav-link" href="/server">
@@ -113,6 +145,9 @@
     <header class="navbar navbar-expand-md d-print-none">
       <div class="container-xl">
         <div class="navbar-nav flex-row w-100">
+          <button class="mobile-nav-toggle" type="button" id="mobileNavToggle" aria-controls="sidebar-menu" aria-expanded="false" aria-label="Открыть меню">
+            <i class="ti ti-menu-2"></i>
+          </button>
           <div class="hardware-bar" id="hardwareBar">
             <span class="hw-item" id="hwCpu">CPU: …</span>
             <span class="hw-item" id="hwGpu">GPU: …</span>
@@ -142,9 +177,11 @@
   </div>
 </div>
 
+<div class="mobile-nav-backdrop" id="mobileNavBackdrop"></div>
+
 <script src="/static/vendor/tabler/tabler.min.js"></script>
 <script src="/static/status_bar.js?v=2"></script>
-<script src="/static/js/base.js"></script>
+<script src="/static/js/base.js?v=2"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

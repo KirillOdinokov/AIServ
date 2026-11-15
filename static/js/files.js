@@ -17,9 +17,12 @@
     return (bytes / 1024 / 1024 / 1024).toFixed(2) + ' ГБ';
   }
   function fmtDate(ts) {
-    if (!ts) return '';
+    if (!ts) return '—';
     const d = new Date(ts * 1000);
     return d.toLocaleDateString('ru-RU') + ' ' + d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  }
+  function sizeText(e) {
+    return e.size == null ? '—' : fmtSize(e.size);
   }
   function joinPath(base, name) { return base ? base + '/' + name : name; }
 
@@ -104,9 +107,9 @@
       tr.innerHTML = '<td><div class="d-flex align-items-center gap-2">' +
         '<i class="ti ' + ic.icon + '" style="font-size:1.25rem;color:' + ic.color + ';"></i>' +
         '<span class="text-truncate" style="max-width:420px;">' + esc(e.name) + '</span></div></td>' +
-        '<td class="d-none d-md-table-cell text-secondary">' + (e.is_dir ? '' : fmtDate(e.mtime)) + '</td>' +
+        '<td class="d-none d-md-table-cell text-secondary">' + fmtDate(e.mtime) + '</td>' +
         '<td class="d-none d-md-table-cell text-secondary">' + typeLabel(kind) + '</td>' +
-        '<td class="d-none d-sm-table-cell text-secondary">' + (e.is_dir ? '' : fmtSize(e.size)) + '</td>' +
+        '<td class="d-none d-sm-table-cell text-secondary">' + sizeText(e) + '</td>' +
         '<td class="text-end"></td>';
       tr.addEventListener('click', () => openEntry(e));
       if (!isProtected(e)) {
@@ -135,7 +138,8 @@
       tile.className = 'ai-fm-tile';
       tile.innerHTML = '<i class="ti ' + ic.icon + '" style="color:' + ic.color + ';"></i>' +
         '<div class="nm" title="' + esc(e.name) + '">' + esc(e.name) + '</div>' +
-        '<div class="meta">' + (e.is_dir ? 'Папка' : fmtSize(e.size)) + '</div>';
+        '<div class="meta">' + (e.is_dir ? 'Папка · ' : '') + sizeText(e) + '</div>' +
+        '<div class="meta">' + fmtDate(e.mtime) + '</div>';
       tile.addEventListener('click', () => openEntry(e));
       if (!isProtected(e)) {
         const del = document.createElement('button');

@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Сайты{% endblock %}
+
+{% block head %}
+<style>
+  .site-lamp {
+    width: 14px; height: 14px; border-radius: 50%; display: inline-block;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, .05); flex: 0 0 auto;
+  }
+  .site-lamp.ok   { background: #2fb344; }
+  .site-lamp.bad  { background: #d60b0b; }
+  .site-lamp.warn { background: #f59f00; }
+  .site-lamp.idle { background: #adb5bd; }
+  .site-card .domain { word-break: break-all; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Сайты</h2>
+      <div class="text-secondary mt-1">Мониторинг доступности сайтов — проверка раз в час</div>
+    </div>
+    <div class="col-auto ms-auto d-print-none">
+      <div class="btn-list">
+        <div class="dropdown">
+          <button class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            Справочники
+          </button>
+          <div class="dropdown-menu">
+            <a class="dropdown-item" href="{{ prefix }}/sites/managers">Менеджеры</a>
+            <a class="dropdown-item" href="{{ prefix }}/sites/addresses">Адреса</a>
+            <a class="dropdown-item" href="{{ prefix }}/sites/legal-entities">Юрлица</a>
+          </div>
+        </div>
+        <a href="{{ prefix }}/sites/list" class="btn btn-outline-secondary">Список сайтов</a>
+        <button type="button" class="btn btn-outline-secondary" id="checkAll">
+          <i class="ti ti-refresh me-1"></i>Проверить все
+        </button>
+        <a href="{{ prefix }}/sites/new" class="btn btn-primary">
+          <i class="ti ti-plus me-1"></i>Добавить сайт
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards">
+  {% for s in cards %}
+  <div class="col-sm-6 col-lg-4 col-xl-3">
+    <div class="card h-100 site-card">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div class="min-w-0">
+            <div class="h3 mb-1 text-truncate">
+              <a href="{{ prefix }}/sites/{{ s.id }}">{{ s.name }}</a>
+            </div>
+            <div class="text-secondary small domain">
+              <a href="{{ s.base_url or ('https://' ~ s.domain) }}" target="_blank" rel="noopener">{{ s.domain }}</a>
+            </div>
+          </div>
+          <span class="site-lamp {{ s.state }}"
+                title="{% if s.state == 'ok' %}работает{% elif s.state == 'bad' %}не отвечает{% elif s.state == 'warn' %}нет свежих данных{% else %}нет данных{% endif %}"></span>
+        </div>
+
+        <div class="hr my-3"></div>
+
+        <div class="row g-2 small">
+          <div class="col-6">
+            <div class="text-secondary">TTFB</div>
+            <div class="fw-bold">{{ (s.check.ttfb_ms ~ ' мс') if s.check and s.check.ttfb_ms else '—' }}</div>
+          </div>
+          <div class="col-6">
+            <div class="text-secondary">Uptime 24ч</div>
+            <div class="fw-bold">{{ (s.uptime ~ '%') if s.uptime is not none else '—' }}</div>
+          </div>
+          <div class="col-6">
+            <div class="text-secondary">Товаров</div>
+            <div class="fw-bold">{{ '{:,}'.format(s.products).replace(',', ' ') }}</div>
+          </div>
+          <div class="col-6">
+            <div class="text-secondary">Поставщик</div>
+            <div class="fw-bold text-truncate" title="{{ s.main_supplier or '' }}">{{ s.main_supplier or '—' }}</div>
+          </div>
+          <div class="col-6">
+            <div class="text-secondary">Телефон</div>
+            <div class="fw-bold text-truncate">{{ s.phone or '—' }}</div>
+          </div>
+          <div class="col-6">
+            <div class="text-secondary">Менеджер</div>
+            <div class="fw-bold text-truncate" title="{{ s.manager_names or '' }}">{{ s.manager_names or '—' }}</div>
+          </div>
+        </div>
+
+        <div class="mt-2 small text-secondary">
+          <div class="text-truncate" title="{{ s.legal_entity_name or '' }}">
+            <i class="ti ti-building me-1"></i>{{ s.legal_entity_name or '—' }}
+          </div>
+          <div class="text-truncate" title="{{ s.address_text or '' }}">
+            <i class="ti ti-map-pin me-1"></i>{{ s.address_city or s.address_text or '—' }}
+          </div>
+        </div>
+
+        <div class="mt-3 text-secondary small">
+          {% if s.check %}
+            Проверен: {{ s.check.checked_at.strftime('%d.%m %H:%M') }}
+            {% if s.check.status_code %} · HTTP {{ s.check.status_code }}{% endif %}
+            {% if s.check.error %} · <span class="text-danger">{{ s.check.error }}</span>{% endif %}
+          {% else %}
+            Ещё не проверялся
+          {% endif %}
+        </div>
+      </div>
+      <div class="card-footer d-flex align-items-center gap-2">
+        <span class="badge bg-secondary-lt">{{ s.price_mode }}</span>
+        {% if not s.active %}<span class="badge bg-warning-lt">выкл.</span>{% endif %}
+        <a href="{{ prefix }}/sites/{{ s.id }}" class="btn btn-sm btn-outline-primary ms-auto">Настройки</a>
+        <button type="button" class="btn btn-sm btn-icon btn-outline-secondary" data-check="{{ s.id }}" title="Проверить">
+          <i class="ti ti-refresh"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12">
+    <div class="card"><div class="card-body text-secondary text-center py-4">Пока нет сайтов</div></div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('[data-check]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      try {
+        await fetch('{{ prefix }}/api/sites/' + btn.dataset.check + '/check', { method: 'POST' });
+      } finally {
+        location.reload();
+      }
+    });
+  });
+  document.getElementById('checkAll')?.addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try {
+      await fetch('{{ prefix }}/api/sites/check', { method: 'POST' });
+    } finally {
+      location.reload();
+    }
+  });
+</script>
+{% endblock %}

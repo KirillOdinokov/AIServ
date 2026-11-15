@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Расширение ассортимента #{{ task.id }}{% endblock %}
+
+{% block head %}
+<style>
+  .pub-table td { vertical-align: top; }
+  .pub-price { white-space: nowrap; font-size: .82rem; }
+  .pub-extra { font-size: .75rem; color: #6c757d; }
+  .pub-json { font-size: .72rem; max-height: 260px; overflow: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <div class="text-secondary small mb-1">
+        <a href="{{ prefix }}/publication/assortment">Публикация</a> / расширение ассортимента #{{ task.id }}
+      </div>
+      <h2 class="page-title">{{ task.title or 'Расширение ассортимента' }}</h2>
+      <div class="text-secondary mt-1">
+        {{ task.supplier_name or 'поставщик не указан' }}
+        {% if task.meta.get('filename') %} · {{ task.meta.get('filename') }}{% endif %}
+        {% if task.meta.get('price_date') %} · прайс от {{ task.meta.get('price_date')[:10] }}{% endif %}
+        · создана {{ task.created_at.strftime('%d.%m.%Y %H:%M') if task.created_at else '—' }}
+      </div>
+    </div>
+    <div class="col-auto ms-auto d-print-none">
+      <a href="{{ prefix }}/publication/assortment" class="btn btn-outline-secondary">К списку</a>
+    </div>
+  </div>
+</div>
+
+<div class="alert alert-secondary py-2">
+  Данные сохранены для будущей публикации. Сейчас задача доступна только для просмотра —
+  создание карточек и выгрузку на сайты доработаем позже.
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-6 col-md-3"><div class="card"><div class="card-body py-2"><div class="text-secondary small">Позиций</div><div class="h2 mb-0">{{ task.items_total }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card"><div class="card-body py-2"><div class="text-secondary small">Поставщик</div><div class="h4 mb-0">{{ task.supplier_name or '—' }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card"><div class="card-body py-2"><div class="text-secondary small">Прайс</div><div class="h4 mb-0 text-truncate" title="{{ task.meta.get('filename') }}">{{ task.meta.get('filename') or '—' }}</div></div></div></div>
+  <div class="col-6 col-md-3"><div class="card"><div class="card-body py-2"><div class="text-secondary small">Статус</div><div class="h4 mb-0">{{ task.status }}</div></div></div></div>
+</div>
+
+{% if columns %}
+<div class="text-secondary small mb-2">
+  Колонки цен: {% for c in columns %}<span class="badge bg-secondary-lt me-1">{{ c.header|truncate(40) }}</span>{% endfor %}
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table pub-table">
+      <thead>
+        <tr>
+          <th style="width:52px;">#</th>
+          <th>Товар из прайса</th>
+          <th style="width:90px;">Артикул</th>
+          <th style="width:60px;">Ед.</th>
+          {% for c in columns %}
+          <th class="pub-price" title="{{ c.header }}">{{ (c.header.split('/')[-1]|trim)|truncate(24) }}</th>
+          {% endfor %}
+          <th>Раздел / доп. данные</th>
+          <th style="width:80px;">JSON</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="text-secondary small">{{ loop.index }}</td>
+          <td>
+            <div class="fw-bold">{{ item.raw_name }}</div>
+            {% if item.raw_extra.get('Раздел') %}
+            <div class="pub-extra"><b>Раздел:</b> {{ item.raw_extra.get('Раздел')|truncate(120) }}</div>
+            {% endif %}
+          </td>
+          <td class="small">{{ item.raw_sku or '—' }}</td>
+          <td class="small">{{ item.raw_unit or '—' }}</td>
+          {% for cell in item.price_cells %}
+          <td class="pub-price">
+            {{ ('%.2f'|format(cell.value)) if cell.value is not none else '—' }}
+          </td>
+          {% endfor %}
+          <td>
+            {% for k, v in item.raw_extra.items() %}
+              {% if k != 'Раздел' %}
+              <div class="pub-extra"><b>{{ k }}:</b> {{ v|truncate(160) }}</div>
+              {% endif %}
+            {% endfor %}
+          </td>
+          <td>
+            <details>
+              <summary class="small text-secondary">показать</summary>
+              <pre class="pub-json">{{ item.raw_data|tojson(indent=2) }}</pre>
+            </details>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ 6 + columns|length }}" class="text-center text-secondary py-4">Позиций нет</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

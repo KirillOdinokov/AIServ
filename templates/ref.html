@@ -21,7 +21,8 @@
       <div class="card-body">
         <p class="text-secondary">
           Колонки: <code>post_title</code> (название), <code>ID</code>, <code>image</code> (URL картинки, опционально),
-          <code>type</code> (standart / storage / post_image / application / all_product).
+          <code>type</code> (необязательно: standart / storage / post_image / application / clean / all_product).
+          Если колонки type нет — тип можно выбрать вручную чекбоксами при сопоставлении.
         </p>
         <form id="refUploadForm">
           <input type="file" id="refCsvFile" class="form-control mb-3" accept=".csv" required>
@@ -43,6 +44,7 @@
           <dt class="col-4"><code>storage</code></dt><dd class="col-8 text-secondary">Товар на стеллаже склада.</dd>
           <dt class="col-4"><code>post_image</code></dt><dd class="col-8 text-secondary">Широкий кадр для записи (21:9).</dd>
           <dt class="col-4"><code>application</code></dt><dd class="col-8 text-secondary">Применение товара строителями.</dd>
+          <dt class="col-4"><code>clean</code></dt><dd class="col-8 text-secondary">Товар «как есть» на белом фоне 1:1, профессиональный свет, без водяных знаков, дефектов и новых надписей.</dd>
           <dt class="col-4"><code>all_product</code></dt><dd class="col-8 text-secondary">Сразу storage + standart.</dd>
           <dt class="col-4"><em>пусто</em></dt><dd class="col-8 text-secondary">По умолчанию — standart.</dd>
         </dl>

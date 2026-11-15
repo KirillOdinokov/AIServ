@@ -26,12 +26,13 @@
             <tr><td><code>storage</code></td><td>Товар на металлическом стеллаже склада. Название сайта — гравировкой на стеллаже.</td></tr>
             <tr><td><code>post_image</code></td><td>Изображение для записи (не товар). Широкий кадр 21:9, название сайта на одном из объектов.</td></tr>
             <tr><td><code>application</code></td><td>Применение товара строителями. Этикетка сохраняется, название сайта — на каске/спецодежде.</td></tr>
+            <tr><td><code>clean</code></td><td>Clean: товар «как есть» на чистом белом фоне, 1:1, профессиональный свет, без водяных знаков, дефектов и любых новых надписей/логотипов.</td></tr>
             <tr><td><code>all_product</code></td><td>Сразу два изображения: storage + standart.</td></tr>
             <tr><td><em>пусто</em></td><td>По умолчанию — standart.</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="text-secondary mt-2 mb-0">Если колонки type в CSV нет — будет использован тип standart.</p>
+      <p class="text-secondary mt-2 mb-0">Если колонки type в CSV нет — выберите «Ручной выбор (несколько типов)» и отметьте нужные типы чекбоксами. Типы применятся ко всем строкам. Если не выбрано ничего — будет использован standart.</p>
     </details>
 
     <div class="d-flex gap-2">
@@ -43,5 +44,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="/static/js/ref_map.js?v=2"></script>
+<script src="/static/js/ref_map.js?v=3"></script>
 {% endblock %}

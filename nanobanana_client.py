@@ -97,9 +97,11 @@ def check_task(task_id):
 
 
 def generate(model_id, prompt, images=None, aspect_ratio="1:1", resolution="2k",
-             poll_interval=5, timeout=600):
+             poll_interval=5, timeout=600, on_task=None):
     """Создать задачу, дождаться завершения и вернуть список URL результата.
 
+    on_task(info) — необязательный callback для сохранения task_id/статуса
+    во внешней задаче (например, в истории «Тачек»).
     Возвращает (list_of_urls, credits). Бросает RuntimeError при ошибке.
     """
     created = create_task(model_id, prompt, images, aspect_ratio, resolution)
@@ -107,11 +109,23 @@ def generate(model_id, prompt, images=None, aspect_ratio="1:1", resolution="2k",
     if not task_id:
         raise RuntimeError("Nano Banana: не вернул task_id")
 
+    if on_task:
+        try:
+            on_task({"task_id": task_id, "status": "created", "credits": created.get("credits")})
+        except Exception:
+            pass
+
     start = time.time()
     while True:
         if time.time() - start > timeout:
             raise TimeoutError("Nano Banana: таймаут ожидания результата")
         status = check_task(task_id)
+        if on_task:
+            try:
+                on_task({"task_id": task_id, "status": status.get("status"),
+                         "credits": created.get("credits")})
+            except Exception:
+                pass
         if status["status"] == "completed":
             return status["results"], created["credits"]
         if status["status"] == "failed":

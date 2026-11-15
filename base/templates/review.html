@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Картирование поставщиков{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Картирование поставщиков</h2>
+      <div class="text-secondary mt-1">
+        Amalor-поставщиков: {{ total }} · офисных: {{ office|length }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="get" action="{{ prefix }}/review" class="d-flex flex-wrap gap-2 mb-3" style="max-width:620px;">
+  <input type="text" name="q" value="{{ q }}" class="form-control flex-grow-1"
+         placeholder="Название или slug поставщика">
+  <button class="btn btn-primary">Найти</button>
+  {% if q %}<a href="{{ prefix }}/review" class="btn btn-outline-secondary">Сброс</a>{% endif %}
+</form>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th style="width:38%;">Поставщик (Amalor)</th>
+          <th>Поставщики в office.enix.ru</th>
+          <th style="width:190px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in amalor %}
+        <tr data-am="{{ s.amalor_slug }}" data-name="{{ s.name }}" data-selected="{{ matches.get(s.amalor_slug, [])|list|tojson }}">
+          <td>
+            <div class="fw-bold">{{ s.name }}</div>
+            <div class="text-secondary small">
+              {{ s.amalor_slug }}
+              {% if s.website %}· <a href="{{ s.website }}" target="_blank" rel="noopener">{{ s.website }}</a>{% endif %}
+              · товаров {{ s.products }}
+            </div>
+            {% if s.sample_url %}
+            <div class="small"><a href="{{ s.sample_url }}" target="_blank" rel="noopener">пример товара поставщика</a></div>
+            {% endif %}
+          </td>
+          <td>
+            <div class="text-secondary small selected-names"></div>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-outline-secondary" data-choose>Выбрать поставщиков</button>
+            <div class="text-secondary small mt-1" data-status></div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="text-secondary text-center py-4">Поставщики не найдены</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if total > per %}
+<div class="d-flex justify-content-center align-items-center gap-2 mt-3">
+  {% if page > 1 %}<a class="btn btn-outline-secondary btn-sm" href="{{ prefix }}/review?q={{ q|urlencode }}&per={{ per }}&page={{ page - 1 }}">Назад</a>{% endif %}
+  <span class="text-secondary">Стр. {{ page }} из {{ ((total - 1) // per) + 1 }} · всего {{ total }}</span>
+  {% if page * per < total %}<a class="btn btn-outline-secondary btn-sm" href="{{ prefix }}/review?q={{ q|urlencode }}&per={{ per }}&page={{ page + 1 }}">Далее</a>{% endif %}
+</div>
+{% endif %}
+
+<div class="modal modal-blur fade" id="officeModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="officeTitle">Поставщики office.enix.ru</h5>
+        <button type="button" class="btn-close" data-close aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="officeFilter" class="form-control mb-2" placeholder="Фильтр по названию или slug…">
+        <div id="officeList" class="border rounded p-1" style="max-height:360px;overflow:auto;"></div>
+        <div class="text-secondary small mt-2"><span id="officeCount">0</span> выбрано</div>
+      </div>
+      <div class="modal-footer">
+        <span id="officeStatus" class="text-secondary small me-auto"></span>
+        <button type="button" class="btn btn-link" data-close>Отмена</button>
+        <button type="button" class="btn btn-primary" id="officeSave">Сохранить</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const OFFICE = {{ office|tojson }};
+const OFFICE_BY_ID = Object.fromEntries(OFFICE.map((o) => [o.id, o]));
+(function () {
+  const $ = (id) => document.getElementById(id);
+  let currentRow = null;
+  let selected = new Set();
+  let modal = null;
+
+  function renderNames(row) {
+    const ids = JSON.parse(row.dataset.selected || '[]');
+    const names = ids.map((id) => (OFFICE_BY_ID[id] || {}).name).filter(Boolean);
+    row.querySelector('.selected-names').textContent = names.length ? names.join(', ') : '— не выбрано —';
+  }
+  document.querySelectorAll('tr[data-am]').forEach(renderNames);
+
+  function showModal() {
+    const el = $('officeModal');
+    el.style.display = 'block';
+    el.classList.add('show');
+    el.removeAttribute('aria-hidden');
+    document.body.classList.add('modal-open');
+    if (!document.querySelector('.modal-backdrop')) {
+      const bd = document.createElement('div');
+      bd.className = 'modal-backdrop fade show';
+      document.body.appendChild(bd);
+    }
+  }
+  function closeModal() {
+    const el = $('officeModal');
+    el.style.display = 'none';
+    el.classList.remove('show');
+    el.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+    const bd = document.querySelector('.modal-backdrop');
+    if (bd) bd.remove();
+  }
+
+  function renderList(q) {
+    const box = $('officeList');
+    box.innerHTML = '';
+    const ql = (q || '').trim().toLowerCase();
+    const items = !ql
+      ? OFFICE
+      : OFFICE.filter((o) => o.name.toLowerCase().includes(ql) || o.slug.toLowerCase().includes(ql));
+    $('officeCount').textContent = selected.size;
+    if (!items.length) {
+      box.innerHTML = '<div class="text-secondary p-2 small">Ничего не найдено</div>';
+      return;
+    }
+    const frag = document.createDocumentFragment();
+    items.slice(0, 100).forEach((o) => {
+      const label = document.createElement('label');
+      label.className = 'form-check mb-0';
+      label.innerHTML = '<input type="checkbox" class="form-check-input"><span class="form-check-label small"></span>';
+      const cb = label.querySelector('input');
+      cb.value = o.id;
+      cb.checked = selected.has(o.id);
+      cb.addEventListener('change', () => {
+        if (cb.checked) selected.add(o.id); else selected.delete(o.id);
+        $('officeCount').textContent = selected.size;
+      });
+      label.querySelector('.form-check-label').textContent = o.name + ' (' + o.slug + ')';
+      frag.appendChild(label);
+    });
+    box.appendChild(frag);
+  }
+
+  document.querySelectorAll('[data-choose]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      currentRow = btn.closest('tr[data-am]');
+      selected = new Set(JSON.parse(currentRow.dataset.selected || '[]'));
+      $('officeTitle').textContent = 'Поставщики для: ' + (currentRow.dataset.name || currentRow.dataset.am);
+      $('officeFilter').value = '';
+      $('officeStatus').textContent = '';
+      renderList('');
+      showModal();
+      $('officeFilter').focus();
+    });
+  });
+
+  $('officeFilter').addEventListener('input', (e) => renderList(e.target.value));
+  document.querySelectorAll('#officeModal [data-close]').forEach((b) => b.addEventListener('click', closeModal));
+  $('officeModal').addEventListener('click', (e) => {
+    if (e.target === $('officeModal')) closeModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('officeModal').classList.contains('show')) closeModal();
+  });
+
+  $('officeSave').addEventListener('click', async () => {
+    if (!currentRow) return;
+    const ids = Array.from(selected);
+    $('officeStatus').textContent = 'Сохранение…';
+    try {
+      const res = await fetch('{{ prefix }}/api/review/supplier-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amalor_slug: currentRow.dataset.am, office_ids: ids }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      currentRow.dataset.selected = JSON.stringify(ids);
+      renderNames(currentRow);
+      $('officeStatus').textContent = 'Сохранено: ' + ids.length;
+      setTimeout(closeModal, 500);
+    } catch (e) {
+      $('officeStatus').textContent = 'Ошибка: ' + e.message;
+    }
+  });
+})();
+</script>
+{% endblock %}

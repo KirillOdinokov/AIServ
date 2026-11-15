@@ -390,3 +390,122 @@ header.navbar {
 .ai-fm-tile .ti { font-size: 2rem; }
 .ai-fm-tile .nm { font-size: .85rem; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ai-fm-tile .meta { color: #999999; font-size: .75rem; }
+
+/* ── Мобильное меню (выезжающий слева сайдбар) ─────────────────────────── */
+.mobile-nav-toggle,
+.mobile-nav-close {
+  display: none;
+}
+
+.mobile-nav-toggle {
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  margin-right: 10px;
+  border: 1px solid #dddddd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #000000;
+  font-size: 1.35rem;
+  cursor: pointer;
+}
+
+.mobile-nav-toggle:hover {
+  background: #f5f5f5;
+}
+
+.mobile-nav-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+  background: rgba(0, 0, 0, .55);
+}
+
+.mobile-nav-close {
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #333333;
+  border-radius: 8px;
+  background: #121212;
+  color: #ffffff;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+@media (max-width: 991.98px) {
+  .mobile-nav-toggle {
+    display: inline-flex;
+  }
+
+  .mobile-nav-close {
+    display: inline-flex;
+  }
+
+  .mobile-nav-backdrop {
+    display: none;
+  }
+
+  body.mobile-nav-open {
+    overflow: hidden;
+  }
+
+  body.mobile-nav-open .mobile-nav-backdrop {
+    display: block;
+  }
+
+  .navbar-vertical {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 290px;
+    max-width: 88vw;
+    height: 100vh;
+    margin: 0 !important;
+    z-index: 1045;
+    transform: translateX(-105%);
+    transition: transform .25s ease;
+    overflow-y: auto;
+    box-shadow: 0 0 30px rgba(0, 0, 0, .45);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.mobile-nav-open .navbar-vertical {
+    transform: translateX(0);
+  }
+
+  .navbar-vertical .navbar-collapse {
+    display: flex !important;
+    flex: 1 1 auto;
+    overflow-y: auto;
+  }
+
+  .navbar-vertical .container-fluid {
+    min-height: 100%;
+  }
+
+  .navbar-vertical .navbar-brand {
+    padding-top: 8px;
+  }
+
+  .page-wrapper {
+    min-width: 0;
+  }
+}
+
+@media (min-width: 992px) {
+  .mobile-nav-toggle,
+  .mobile-nav-close,
+  .mobile-nav-backdrop {
+    display: none !important;
+  }
+}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Прайсы{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Прайсы</h2>
+      <div class="text-secondary mt-1">Задачи распознавания и сопоставления прайс-листов</div>
+    </div>
+    <div class="col-auto ms-auto d-print-none">
+      <a href="{{ prefix }}/prices/new" class="btn btn-primary">
+        <i class="ti ti-upload me-1"></i>Добавить прайс
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th style="width:60px;">#</th>
+          <th>Файл</th>
+          <th>Поставщик</th>
+          <th>Дата прайса</th>
+          <th>Статус</th>
+          <th class="text-end">Строк</th>
+          <th class="text-end">Сопоставлено</th>
+          <th class="text-end">Утверждено</th>
+          <th>Загружен</th>
+          <th style="width:110px;"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="text-secondary">{{ r.id }}</td>
+          <td>
+            <div class="fw-bold text-truncate" style="max-width:320px;" title="{{ r.filename }}">{{ r.filename }}</div>
+            {% if r.error %}<div class="text-danger small text-truncate" style="max-width:320px;" title="{{ r.error }}">{{ r.error }}</div>{% endif %}
+          </td>
+          <td>{{ r.supplier_name or '—' }}</td>
+          <td>{{ r.price_date.strftime('%d.%m.%Y') if r.price_date else '—' }}</td>
+          <td>
+            {% set st = r.status %}
+            <span class="badge {% if st in ['uploaded','parsing','matching'] %}bg-blue-lt{% elif st == 'review' %}bg-yellow-lt{% elif st == 'partial' %}bg-blue-lt{% elif st == 'applied' %}bg-green-lt{% elif st == 'failed' %}bg-red-lt{% else %}bg-secondary-lt{% endif %}">
+              {{ status_ru.get(st, st) }}
+            </span>
+          </td>
+          <td class="text-end">{{ r.rows_total or 0 }}</td>
+          <td class="text-end">{{ r.rows_matched or 0 }}</td>
+          <td class="text-end">{{ r.rows_approved or 0 }}</td>
+          <td class="text-secondary small">{{ r.uploaded_at.strftime('%d.%m.%Y %H:%M') if r.uploaded_at else '—' }}</td>
+          <td class="text-end">
+            <a href="{{ prefix }}/prices/{{ r.id }}" class="btn btn-sm btn-outline-secondary">Открыть</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="10" class="text-center text-secondary py-5">
+            Задач пока нет. <a href="{{ prefix }}/prices/new">Загрузите первый прайс</a>.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

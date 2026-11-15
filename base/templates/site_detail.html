@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — {{ site.name }}{% endblock %}
+
+{% block head %}
+<script src="/static/vendor/apexcharts/apexcharts.min.js"></script>
+<style>
+  .site-lamp {
+    width: 14px; height: 14px; border-radius: 50%; display: inline-block;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, .05); flex: 0 0 auto;
+  }
+  .site-lamp.ok   { background: #2fb344; }
+  .site-lamp.bad  { background: #d60b0b; }
+  .site-lamp.warn { background: #f59f00; }
+  .site-lamp.idle { background: #adb5bd; }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set state = 'ok' if last and last.ok else ('bad' if last else 'idle') %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <div class="text-secondary mb-1"><a href="{{ prefix }}/sites">&larr; Все сайты</a></div>
+      <h2 class="page-title d-flex align-items-center gap-2">
+        <span class="site-lamp {{ state }}"></span>{{ site.name }}
+      </h2>
+      <div class="text-secondary mt-1">
+        <a href="{{ site.base_url or ('https://' ~ site.domain) }}" target="_blank" rel="noopener">{{ site.domain }}</a>
+        · {{ site.platform }}{% if site.remote_products is not none %} · товаров на сайте: {{ '{:,}'.format(site.remote_products).replace(',', ' ') }}{% endif %}
+      </div>
+      <div class="text-secondary small mt-1">
+        {{ legal_entity_name or 'юрлицо не задано' }} · {{ address_text or 'адрес не задан' }}
+      </div>
+    </div>
+    <div class="col-auto ms-auto">
+      <div class="btn-list">
+        <a href="{{ prefix }}/sites/{{ site.id }}/reconcile" class="btn btn-outline-secondary">
+          <i class="ti ti-git-compare me-1"></i>Сверка с базой
+        </a>
+        <button type="button" class="btn btn-primary" id="btnCheck">
+          <i class="ti ti-refresh me-1"></i>Проверить сейчас
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-sm-6 col-lg-3">
+    <div class="card"><div class="card-body">
+      <div class="text-secondary small">Последняя проверка</div>
+      <div class="h3 mb-0">{{ last.checked_at.strftime('%d.%m %H:%M') if last else '—' }}</div>
+      <div class="text-secondary small mt-1">
+        {% if last %}HTTP {{ last.status_code or '—' }}{% if last.error %} · <span class="text-danger">{{ last.error }}</span>{% endif %}{% else %}ещё не было{% endif %}
+      </div>
+    </div></div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card"><div class="card-body">
+      <div class="text-secondary small">TTFB (последний)</div>
+      <div class="h3 mb-0">{{ (last.ttfb_ms ~ ' мс') if last and last.ttfb_ms else '—' }}</div>
+    </div></div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card"><div class="card-body">
+      <div class="text-secondary small">Uptime 24ч / 7д</div>
+      <div class="h3 mb-0">
+        {{ (uptime.u24 ~ '%') if uptime.u24 is not none else '—' }}
+        <span class="text-secondary fs-4">/ {{ (uptime.u7 ~ '%') if uptime.u7 is not none else '—' }}</span>
+      </div>
+    </div></div>
+  </div>
+  <div class="col-sm-6 col-lg-3">
+    <div class="card"><div class="card-body">
+      <div class="text-secondary small">Основной поставщик</div>
+      <div class="h3 mb-0 text-truncate">{{ site_supplier_name or '—' }}</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Uptime</h3>
+        <div class="card-actions btn-group" role="group">
+          <button class="btn btn-sm btn-outline-secondary range-btn active" data-hours="24">24ч</button>
+          <button class="btn btn-sm btn-outline-secondary range-btn" data-hours="168">7д</button>
+          <button class="btn btn-sm btn-outline-secondary range-btn" data-hours="720">30д</button>
+        </div>
+      </div>
+      <div class="card-body"><div id="uptimeChart"></div></div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">TTFB</h3>
+        <span class="text-secondary small ms-auto">время до первого байта</span>
+      </div>
+      <div class="card-body"><div id="ttfbChart"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards">
+  <div class="col-lg-8">
+    <form class="card" id="priceForm">
+      <div class="card-header"><h3 class="card-title">Настройки сайта</h3></div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Режим цены</label>
+            <select class="form-select" name="price_mode">
+              <option value="source" {% if site.price_mode == 'source' %}selected{% endif %}>Как в источнике (source)</option>
+              <option value="derived" {% if site.price_mode == 'derived' %}selected{% endif %}>Наценка (derived)</option>
+              <option value="manual" {% if site.price_mode == 'manual' %}selected{% endif %}>Ручной (manual)</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Наценка, %</label>
+            <input type="number" step="0.01" class="form-control" name="price_markup_pct"
+                   value="{{ ((site.price_multiplier - 1) * 100) | round(2) }}">
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Случайная наценка, от %</label>
+            <input type="number" step="0.01" min="0" class="form-control" name="price_random_min_pct"
+                   value="{{ site.price_random_min_pct }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Случайная наценка, до %</label>
+            <input type="number" step="0.01" min="0" class="form-control" name="price_random_pct"
+                   value="{{ site.price_random_pct }}">
+          </div>
+          <div class="col-12">
+            <div class="form-hint">Стабильный случайный процент в заданном интервале для пары «сайт + товар» (хеш). Включается только в режиме «Наценка». Например: от 1 до 5 %.</div>
+          </div>
+
+          <div class="col-md-8">
+            <label class="form-label">Округление цены</label>
+            <div class="d-flex flex-wrap gap-3">
+              <label class="form-check">
+                <input class="form-check-input" type="radio" name="price_round" value="0.01"
+                       {% if site.price_round is not none and site.price_round|float == 0.01 %}checked{% endif %}>
+                <span class="form-check-label">До копеек</span>
+              </label>
+              <label class="form-check">
+                <input class="form-check-input" type="radio" name="price_round" value="0.10"
+                       {% if site.price_round is not none and site.price_round|float == 0.10 %}checked{% endif %}>
+                <span class="form-check-label">До десятков копеек</span>
+              </label>
+              <label class="form-check">
+                <input class="form-check-input" type="radio" name="price_round" value="1"
+                       {% if site.price_round is not none and site.price_round|float == 1 %}checked{% endif %}>
+                <span class="form-check-label">До рублей</span>
+              </label>
+              <label class="form-check">
+                <input class="form-check-input" type="radio" name="price_round" value=""
+                       {% if site.price_round is none %}checked{% endif %}>
+                <span class="form-check-label">Без округления</span>
+              </label>
+            </div>
+            <div class="form-hint">Например: «до десятков копеек» — 38,47 ₽ станет 38,50 ₽; «до рублей» — 38,00 ₽.</div>
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Приоритет</label>
+            <input type="number" class="form-control" name="price_priority" value="{{ site.price_priority }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Валюта</label>
+            <input type="text" class="form-control" name="currency" value="{{ site.currency }}">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Основной поставщик</label>
+            <select class="form-select" name="supplier_id">
+              <option value="">— не задан —</option>
+              {% for sp in suppliers %}
+              <option value="{{ sp.id }}" {% if site.supplier_id == sp.id %}selected{% endif %}>{{ sp.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Телефон сайта</label>
+            <input type="text" class="form-control" name="phone"
+                   value="{{ site.phone or '' }}" placeholder="+7 (___) ___-__-__">
+          </div>
+          <div class="col-12">
+            <label class="form-label">
+              Менеджеры
+              <a href="{{ prefix }}/sites/managers" class="text-secondary small fw-normal ms-1">список</a>
+            </label>
+            <div class="border rounded p-2" style="max-height:200px;overflow:auto;">
+              <div class="row g-1">
+                {% for u in portal_users %}
+                <div class="col-md-6">
+                  <label class="form-check mb-0">
+                    <input class="form-check-input" type="checkbox" name="manager_ids"
+                           value="{{ u.portal_id }}" {% if u.portal_id in selected_manager_ids %}checked{% endif %}>
+                    <span class="form-check-label">
+                      {{ u.full_name }}{% if u.department %} · {{ u.department }}{% endif %}{% if u.position %} · {{ u.position }}{% endif %}{% if not u.is_active %} (неактивен){% endif %}
+                    </span>
+                  </label>
+                </div>
+                {% endfor %}
+              </div>
+            </div>
+            <div class="form-hint">Можно выбрать несколько менеджеров отдела продаж.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">
+              Юрлицо
+              <a href="{{ prefix }}/sites/legal-entities" class="text-secondary small fw-normal ms-1">список</a>
+            </label>
+            <input class="form-control" name="legal_entity_text" list="legalEntitiesList"
+                   value="{{ legal_entity_name or '' }}" placeholder="ООО «...»">
+            <datalist id="legalEntitiesList">
+              {% for l in legal_entities %}<option value="{{ l.name }}">{% endfor %}
+            </datalist>
+            <div class="form-hint">Можно ввести своё — добавится в справочник.</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">
+              Адрес
+              <a href="{{ prefix }}/sites/addresses" class="text-secondary small fw-normal ms-1">список</a>
+            </label>
+            <input class="form-control" name="address_text" list="addressesList"
+                   value="{{ address_text or '' }}" placeholder="Город, улица, дом">
+            <datalist id="addressesList">
+              {% for a in addresses %}<option value="{{ a.full_address }}">{% endfor %}
+            </datalist>
+            <div class="form-hint">Можно ввести свой — добавится в справочник.</div>
+          </div>
+
+          <div class="col-12"><hr class="my-1"></div>
+          <div class="col-md-6">
+            <label class="form-label">Сервер</label>
+            <select class="form-select" name="server_id">
+              <option value="">— не задан —</option>
+              {% for sv in servers %}
+              <option value="{{ sv.id }}" {% if site.server_id == sv.id %}selected{% endif %}>{{ sv.name }}{% if sv.os %} · {{ sv.os }}{% endif %}</option>
+              {% endfor %}
+            </select>
+            <div class="form-hint">
+              {% if server %}
+                {% if server.tariff_monthly %}Тариф {{ '{:,}'.format(server.tariff_monthly).replace(',', ' ') }} ₽/мес · {% endif %}
+                {% if server.balance is not none %}баланс {{ '{:,}'.format(server.balance).replace(',', ' ') }} ₽{% endif %}
+                {% if server_months %} · хватит ~{{ server_months }} мес (до {{ server_block_date }}){% endif %}
+              {% endif %}
+            </div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Регистратор домена</label>
+            <input type="text" class="form-control" name="domain_registrar"
+                   value="{{ domain.registrar if domain else '' }}" placeholder="Beget">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Аккаунт регистратора</label>
+            <input type="text" class="form-control" name="domain_account"
+                   value="{{ domain.account if domain else '' }}" placeholder="odinoknx">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Регистрация домена</label>
+            <input type="date" class="form-control" name="domain_registration_date"
+                   value="{{ domain.registration_date.isoformat() if domain and domain.registration_date else '' }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Окончание домена</label>
+            <input type="date" class="form-control" name="domain_expiration_date"
+                   value="{{ domain.expiration_date.isoformat() if domain and domain.expiration_date else '' }}">
+          </div>
+
+          <div class="col-12">
+            <label class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="active" {% if site.active %}checked{% endif %}>
+              <span class="form-check-label">Сайт активен (участвует в мониторинге)</span>
+            </label>
+            <label class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" name="sync_enabled" {% if site.sync_enabled %}checked{% endif %}>
+              <span class="form-check-label">Синхронизация цен включена</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="card-footer d-flex align-items-center">
+        <span class="text-secondary small" id="saveStatus"></span>
+        <button type="submit" class="btn btn-primary ms-auto">Сохранить</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Пример расчёта</h3></div>
+      <div class="table-responsive">
+        <table class="table table-sm card-table">
+          <thead><tr><th>Товар</th><th class="text-end">База</th><th class="text-end">Сайт</th></tr></thead>
+          <tbody>
+            {% for p in preview %}
+            <tr>
+              <td class="text-truncate" style="max-width:160px" title="{{ p.name }}">{{ p.name }}</td>
+              <td class="text-end">{{ '%.2f'|format(p.base) }}</td>
+              <td class="text-end">
+                <b>{{ '%.2f'|format(p.site_price) if p.site_price is not none else '—' }}</b>
+                {% if p.uplift is not none %}<div class="text-secondary small">{{ '%+.1f'|format(p.uplift) }}%</div>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer text-secondary small">Пересчитывается по текущим настройкам при открытии страницы.</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const SITE_ID = {{ site.id }};
+  const API = '{{ prefix }}/api/sites/' + SITE_ID;
+  let uptimeChart = null, ttfbChart = null;
+
+  async function loadHistory(hours) {
+    const res = await fetch(API + '/history?hours=' + hours);
+    const data = await res.json();
+    const pts = data.points || [];
+    const labels = pts.map((p) => {
+      const d = new Date(p.t);
+      return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    });
+
+    if (uptimeChart) uptimeChart.destroy();
+    uptimeChart = new ApexCharts(document.querySelector('#uptimeChart'), {
+      chart: { type: 'bar', height: 230, toolbar: { show: false } },
+      series: [{ name: 'Uptime', data: pts.map((p) => (p.ok ? 100 : 0)) }],
+      xaxis: { categories: labels, labels: { rotate: -45, style: { fontSize: '10px' } } },
+      yaxis: { min: 0, max: 100, labels: { formatter: (v) => v + '%' } },
+      plotOptions: { bar: { distributed: true, columnWidth: '65%', borderRadius: 2 } },
+      colors: pts.map((p) => (p.ok ? '#2fb344' : '#d60b0b')),
+      dataLabels: { enabled: false },
+      legend: { show: false },
+      tooltip: {
+        y: { formatter: (v) => v + '%' },
+        x: { formatter: (v, opts) => labels[opts.dataPointIndex] || '' },
+      },
+      noData: { text: 'Нет данных' },
+    });
+    uptimeChart.render();
+
+    const ttfb = pts.map((p) => p.ttfb);
+    if (ttfbChart) ttfbChart.destroy();
+    ttfbChart = new ApexCharts(document.querySelector('#ttfbChart'), {
+      chart: { type: 'area', height: 230, toolbar: { show: false } },
+      series: [{ name: 'TTFB', data: ttfb }],
+      xaxis: { categories: labels, labels: { rotate: -45, style: { fontSize: '10px' } } },
+      yaxis: { labels: { formatter: (v) => (v == null ? '—' : Math.round(v) + ' мс') } },
+      stroke: { curve: 'smooth', width: 2 },
+      colors: ['#206bc4'],
+      fill: { type: 'gradient', gradient: { shadeIntensity: 0.2, opacityFrom: 0.35, opacityTo: 0.05 } },
+      dataLabels: { enabled: false },
+      tooltip: { y: { formatter: (v) => (v == null ? '—' : v + ' мс') } },
+      noData: { text: 'Нет данных' },
+    });
+    ttfbChart.render();
+  }
+
+  document.querySelectorAll('.range-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.range-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      loadHistory(btn.dataset.hours);
+    });
+  });
+  loadHistory(24);
+
+  document.getElementById('btnCheck').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    btn.disabled = true;
+    try { await fetch(API + '/check', { method: 'POST' }); } finally { location.reload(); }
+  });
+
+  document.getElementById('priceForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const body = {
+      price_mode: fd.get('price_mode'),
+      price_markup_pct: fd.get('price_markup_pct'),
+      price_random_min_pct: fd.get('price_random_min_pct'),
+      price_random_pct: fd.get('price_random_pct'),
+      price_round: fd.get('price_round'),
+      price_priority: fd.get('price_priority'),
+      currency: fd.get('currency'),
+      supplier_id: fd.get('supplier_id') || null,
+      phone: fd.get('phone') || null,
+      manager_portal_user_ids: [...form.querySelectorAll('[name=manager_ids]:checked')].map((x) => x.value),
+      legal_entity_text: fd.get('legal_entity_text'),
+      address_text: fd.get('address_text'),
+      active: form.querySelector('[name=active]').checked,
+      sync_enabled: form.querySelector('[name=sync_enabled]').checked,
+      server_id: fd.get('server_id') || null,
+      domain_registrar: fd.get('domain_registrar') || null,
+      domain_account: fd.get('domain_account') || null,
+      domain_registration_date: fd.get('domain_registration_date') || null,
+      domain_expiration_date: fd.get('domain_expiration_date') || null,
+    };
+    const st = document.getElementById('saveStatus');
+    st.textContent = 'Сохраняю…';
+    try {
+      const res = await fetch(API + '/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      st.textContent = 'Сохранено';
+      setTimeout(() => location.reload(), 600);
+    } catch (err) {
+      st.textContent = 'Ошибка: ' + err.message;
+    }
+  });
+</script>
+{% endblock %}

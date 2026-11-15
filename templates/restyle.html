@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Фотореализация швов{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Фотореализация деформационных швов</h2>
+      <div class="text-secondary mt-1">Берём готовые 3D-рендеры Deformix и переснимаем в фотографию: меняем материалы, свет и следы эксплуатации, не меняя геометрию и кадр.</div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards">
+  <div class="col-xl-7">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Исходники</h3>
+        <div class="card-actions"><span class="text-secondary" id="restyleCount"></span></div>
+      </div>
+      <div class="card-body pb-2">
+        <div class="btn-list mb-3">
+          <button class="btn btn-sm btn-primary" id="restyleTabCut">Профили (cut)</button>
+          <button class="btn btn-sm btn-outline-secondary" id="restyleTabScene">Сцены (scene)</button>
+        </div>
+        <div class="row g-2 mb-2">
+          <div class="col-md-8">
+            <input id="restyleSearch" class="form-control" placeholder="Поиск по slug, обозначению, device…">
+          </div>
+          <div class="col-md-4 text-end">
+            <button class="btn btn-outline-secondary w-100" id="btnRestyleSelectVisible">Выбрать видимые</button>
+          </div>
+        </div>
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <div class="text-secondary small" id="restyleSelectionInfo">Ничего не выбрано</div>
+          <button class="btn btn-sm btn-outline-secondary" id="btnRestyleClear">Снять выбор</button>
+        </div>
+        <div id="restyleList" class="restyle-list border rounded"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-xl-5">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Параметры пересъёмки</h3></div>
+      <div class="card-body">
+        <div id="restyleSelectedPreview" class="text-secondary mb-2">Выберите исходник слева.</div>
+        <div id="restylePreviewWrap" class="mb-3" style="display:none">
+          <img id="restylePreview" class="img-fluid rounded border" alt="исходник">
+        </div>
+        <div class="mb-2">
+          <label class="form-label" for="restylePrompt">Промпт</label>
+          <textarea id="restylePrompt" class="form-control font-monospace" rows="14" style="font-size:12px"></textarea>
+          <div class="form-hint">Один исходник на входе, без референсов. Меняются только материалы и свет.</div>
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Модель</label>
+          <div id="restyleModel" class="text-secondary">FLUX.2 Klein — локально, бесплатно</div>
+        </div>
+        <button id="btnRestyleRun" class="btn btn-primary w-100">Переснять выбранные</button>
+        <div class="form-hint mt-2">До 50 изображений за запуск. Профили генерируются 1536 px по длинной стороне, сцены — 1280 px.</div>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><h3 class="card-title">Что делать с результатом</h3></div>
+      <div class="card-body text-secondary small">
+        <p class="mb-2">Скачайте ZIP: внутри файлы с теми же именами, что исходники, плюс `manifest.csv`.</p>
+        <p class="mb-0">Распакуйте в `E:\Design\aqua\deformix-img\restyled\` и запустите `apply_restyle.py`, затем сборку сайта.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-3" id="restyleResultsCard" style="display:none">
+  <div class="card-header">
+    <h3 class="card-title">Результаты</h3>
+    <div class="card-actions">
+      <span id="restyleJobStatus" class="text-secondary me-2"></span>
+      <button class="btn btn-sm btn-outline-success" id="btnRestyleZip">Скачать ZIP</button>
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="row row-cards" id="restyleResults"></div>
+  </div>
+</div>
+
+<div class="card mt-3" id="restyleHistoryCard">
+  <div class="card-header">
+    <h3 class="card-title">История</h3>
+    <div class="card-actions">
+      <button class="btn btn-sm btn-outline-secondary" id="btnRestyleHistoryRefresh"><i class="ti ti-refresh"></i> Обновить</button>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr><th>Дата</th><th>Тип</th><th>Файлы</th><th>Статус</th><th class="w-1"></th></tr>
+      </thead>
+      <tbody id="restyleHistoryBody"></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+.restyle-list { max-height: 540px; overflow: auto; }
+.restyle-row { display: flex; gap: .6rem; align-items: center; padding: .45rem .6rem; border-bottom: 1px solid #eee; cursor: pointer; }
+.restyle-row:last-child { border-bottom: 0; }
+.restyle-row:hover { background: #fafafa; }
+.restyle-row.is-current { background: #fff4f4; }
+.restyle-row .form-check-input { margin-top: 0; flex: 0 0 auto; }
+.restyle-row-main { min-width: 0; flex: 1 1 auto; }
+.restyle-row-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.restyle-row-sub { font-size: 12px; color: #777; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/restyle.js?v=1"></script>
+{% endblock %}

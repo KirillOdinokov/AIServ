@@ -28,6 +28,9 @@ class RefQueue:
         self._lock = threading.Lock()
         self._paused = False
         self._current_model = None
+        self._current_job_id = None
+        self._cancelled = set()
+        self._stopped = set()
         self._worker = threading.Thread(target=self._run, daemon=True)
         self._worker.start()
 
@@ -51,7 +54,7 @@ class RefQueue:
 
     def resume_all(self):
         for job in ref_store.list_jobs():
-            if job.status == "done":
+            if job.status in ("done", "stopped"):
                 continue
             if not job.modes:
                 continue
@@ -85,6 +88,36 @@ class RefQueue:
             job.status = "queued"
         ref_store.update_job(job)
 
+    def cancel_job(self, job_id):
+        """Убрать все варианты удалённой задачи из очереди."""
+        with self._lock:
+            self._queue = [entry for entry in self._queue if entry[0] != job_id]
+            if self._current_job_id == job_id:
+                self._cancelled.add(job_id)
+            self._stopped.discard(job_id)
+
+    def _is_cancelled(self, job_id):
+        with self._lock:
+            return job_id in self._cancelled
+
+    def _is_stopped(self, job_id):
+        with self._lock:
+            return job_id in self._stopped
+
+    def stop_job(self, job_id):
+        """Остановить задачу: убрать из очереди и прервать текущую генерацию."""
+        job = ref_store.get_job(job_id)
+        if job is None:
+            return False
+        with self._lock:
+            self._queue = [entry for entry in self._queue if entry[0] != job_id]
+            if self._current_job_id == job_id:
+                self._stopped.add(job_id)
+        job.status = "stopped"
+        job.paused = False
+        ref_store.update_job(job)
+        return True
+
     def pause_job(self, job_id):
         job = ref_store.get_job(job_id)
         if job is None:
@@ -99,8 +132,10 @@ class RefQueue:
         job = ref_store.get_job(job_id)
         if job is None:
             return False
+        with self._lock:
+            self._stopped.discard(job_id)
         job.paused = False
-        if job.status in ("queued", "running", "draft"):
+        if job.status in ("queued", "running", "draft", "stopped"):
             self.submit_job(job)
         ref_store.update_job(job)
         return True
@@ -120,7 +155,7 @@ class RefQueue:
                 job = ref_store.get_job(e[0])
                 if job is None:
                     continue
-                if job.paused:
+                if job.paused or job.status == "stopped":
                     continue
                 item = next((i for i in job.items if i.id == e[1]), None)
                 variant = next((v for v in item.variants if v.id == e[2]), None) if item else None
@@ -134,7 +169,7 @@ class RefQueue:
                 job = ref_store.get_job(e[0])
                 if job is None:
                     continue
-                if job.paused:
+                if job.paused or job.status == "stopped":
                     continue
                 item = next((i for i in job.items if i.id == e[1]), None)
                 variant = next((v for v in item.variants if v.id == e[2]), None) if item else None
@@ -157,6 +192,8 @@ class RefQueue:
                 continue
 
             job_id, item_id, variant_id = entry
+            with self._lock:
+                self._current_job_id = job_id
 
             if variant is not None and variant.model_id != self._current_model:
                 self._unload_model()
@@ -166,6 +203,12 @@ class RefQueue:
                 self._process(job_id, item_id, variant_id)
             except Exception as e:
                 print(f"[ref_queue] Ошибка обработки {variant_id}: {e}")
+            finally:
+                with self._lock:
+                    if self._current_job_id == job_id:
+                        self._current_job_id = None
+                    self._cancelled.discard(job_id)
+                    self._stopped.discard(job_id)
 
     def _unload_model(self):
         if generator._pipe is not None:
@@ -174,6 +217,8 @@ class RefQueue:
         comfy_client.free_memory(unload_models=True, free_memory=True)
 
     def _process(self, job_id, item_id, variant_id):
+        if self._is_cancelled(job_id) or self._is_stopped(job_id):
+            return
         job = ref_store.get_job(job_id)
         if job is None:
             return
@@ -235,6 +280,29 @@ class RefQueue:
             variant.status = "error"
             variant.error = str(e)
             variant.elapsed = round(time.time() - start, 1)
+
+        if self._is_cancelled(job_id) or ref_store.get_job(job_id) is None:
+            try:
+                out_path.unlink(missing_ok=True)
+                if ref_store.get_job(job_id) is None:
+                    import shutil
+                    shutil.rmtree(config.OUTPUT_DIR / job_folder, ignore_errors=True)
+            except Exception:
+                pass
+            return
+
+        if self._is_stopped(job_id):
+            try:
+                out_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+            variant.status = "pending"
+            variant.filename = None
+            variant.error = None
+            variant.elapsed = None
+            job.status = "stopped"
+            ref_store.update_job(job)
+            return
 
         done, total = job.progress()
         if done >= total:
@@ -302,37 +370,41 @@ class RefQueue:
                 _store_meta(dest, item.image_url or "")
             return dest
 
-        # 2. Явный URL из CSV
+        # 2. Явный URL из CSV используем, только если это ПРЯМАЯ ссылка на файл.
+        #    Если это страница товара — ничего со страницы не тянем, ищем в DDG
+        #    по названию (name → DuckDuck → фото товара).
         source_url = None
         raw_file = None
         if item.image_url:
             if item.image_url.startswith(("http://", "https://")):
                 source_url = item.image_url
-                if not cache_dest.exists() or cache_dest.stat().st_size == 0:
-                    if not image_search.download_image(item.image_url, cache_dest):
-                        cache_dest = None
-                raw_file = cache_dest
+                if cache_dest.exists() and cache_dest.stat().st_size > 0:
+                    raw_file = cache_dest
+                elif image_search.download_image(item.image_url, cache_dest):
+                    raw_file = cache_dest
             else:
                 p = Path(item.image_url)
                 if p.exists():
                     raw_file = p
 
-        # 3. Поиск по названию
+        # 3. Поиск по названию (DuckDuckGo), если по URL картинку взять не удалось
         if raw_file is None:
             query = item.title or item.item_id or ""
             if query:
                 min_w = min_h = 0
                 if item.ref_type == "post_image":
                     min_w, min_h = 1920, 1080
-                if not cache_dest.exists() or cache_dest.stat().st_size == 0:
-                    url = image_search.find_reference_image(query, cache_dest, min_width=min_w, min_height=min_h)
+                if cache_dest.exists() and cache_dest.stat().st_size > 0:
+                    raw_file = cache_dest
+                else:
+                    url = image_search.find_reference_image(query, cache_dest, min_width=min_w, min_height=min_h,
+                                                            use_suffix=False, allow_ddg=False)
                     if url:
                         source_url = url
-                    else:
-                        cache_dest = None
-                raw_file = cache_dest if (cache_dest and cache_dest.exists() and cache_dest.stat().st_size > 0) else None
+                        raw_file = cache_dest if (cache_dest.exists() and cache_dest.stat().st_size > 0) else None
 
         if raw_file is None:
+            print(f"[ref_queue] Референс не найден: {item.title!r} (image_url={item.image_url!r})")
             return None
 
         # Конвертируем скачанный референс в PNG-исходник в sources-png

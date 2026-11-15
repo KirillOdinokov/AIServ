@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Юрлица{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <div class="text-secondary mb-1"><a href="{{ prefix }}/sites">&larr; Сайты</a></div>
+      <h2 class="page-title">Юрлица</h2>
+      <div class="text-secondary mt-1">Юридические лица, к которым привязаны сайты</div>
+    </div>
+    <div class="col-auto ms-auto d-print-none">
+      <div class="btn-list">
+        <a href="{{ prefix }}/sites/addresses" class="btn btn-outline-secondary">Адреса</a>
+        <a href="{{ prefix }}/sites/managers" class="btn btn-outline-secondary">Менеджеры</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form class="card mb-3" id="legalForm">
+  <div class="card-header"><h3 class="card-title">Добавить юрлицо</h3></div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-4">
+        <label class="form-label">Название *</label>
+        <input type="text" class="form-control" name="name" required placeholder="ООО «Завод Стеклотканей»">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Полное наименование</label>
+        <input type="text" class="form-control" name="full_name">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Юридический адрес</label>
+        <input type="text" class="form-control" name="legal_address">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">ИНН</label>
+        <input type="text" class="form-control" name="inn">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">КПП</label>
+        <input type="text" class="form-control" name="kpp">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">ОГРН</label>
+        <input type="text" class="form-control" name="ogrn">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Телефон</label>
+        <input type="text" class="form-control" name="phone">
+      </div>
+      <div class="col-md-4">
+        <label class="form-label">Email</label>
+        <input type="email" class="form-control" name="email">
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <label class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="is_active" checked>
+          <span class="form-check-label">Активно</span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer d-flex align-items-center">
+    <span class="text-secondary small" id="legalStatus"></span>
+    <button type="submit" class="btn btn-primary ms-auto">Добавить</button>
+  </div>
+</form>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th>Юрлицо</th>
+          <th>ИНН / КПП</th>
+          <th>ОГРН</th>
+          <th>Юр. адрес</th>
+          <th>Телефон</th>
+          <th>Email</th>
+          <th>Сайты</th>
+          <th>Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="fw-bold">{{ r.name }}{% if r.full_name and r.full_name != r.name %}<div class="text-secondary small">{{ r.full_name }}</div>{% endif %}</td>
+          <td class="text-secondary text-nowrap">{{ r.inn or '—' }}{% if r.kpp %} / {{ r.kpp }}{% endif %}</td>
+          <td class="text-secondary text-nowrap">{{ r.ogrn or '—' }}</td>
+          <td class="text-secondary">{{ r.legal_address or '—' }}</td>
+          <td class="text-nowrap">{{ r.phone or '—' }}</td>
+          <td class="text-secondary">{{ r.email or '—' }}</td>
+          <td>
+            {% if r.sites_count %}
+              <span class="badge bg-blue-lt">{{ r.sites_count }}</span>
+              <span class="text-secondary small">{{ r.site_names }}</span>
+            {% else %}<span class="text-secondary">—</span>{% endif %}
+          </td>
+          <td>
+            {% if r.is_active %}<span class="badge bg-green-lt">активно</span>
+            {% else %}<span class="badge bg-secondary-lt">неактивно</span>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-secondary text-center py-4">Пока нет юрлиц</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('legalForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const body = {
+      name: fd.get('name'),
+      full_name: fd.get('full_name'),
+      legal_address: fd.get('legal_address'),
+      inn: fd.get('inn'),
+      kpp: fd.get('kpp'),
+      ogrn: fd.get('ogrn'),
+      phone: fd.get('phone'),
+      email: fd.get('email'),
+      is_active: form.querySelector('[name=is_active]').checked,
+    };
+    const st = document.getElementById('legalStatus');
+    st.textContent = 'Сохраняю…';
+    try {
+      const res = await fetch('{{ prefix }}/api/legal-entities', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+      location.reload();
+    } catch (err) {
+      st.textContent = 'Ошибка: ' + err.message;
+    }
+  });
+</script>
+{% endblock %}

@@ -64,6 +64,7 @@ class RefItem:
         self.source_fetched_at = None # время получения референса (epoch)
         self.variants = []
         self.approved_variant_id = None
+        self.approved_source = False   # выбран исходник как финальное изображение
 
     def to_dict(self):
         return {
@@ -81,6 +82,7 @@ class RefItem:
             "source_fetched_at": self.source_fetched_at,
             "variants": [v.to_dict() for v in self.variants],
             "approved_variant_id": self.approved_variant_id,
+            "approved_source": self.approved_source,
         }
 
     @classmethod
@@ -94,6 +96,7 @@ class RefItem:
         it.source_fetched_at = d.get("source_fetched_at")
         it.variants = [RefVariant.from_dict(v) for v in d.get("variants", [])]
         it.approved_variant_id = d.get("approved_variant_id")
+        it.approved_source = bool(d.get("approved_source", False))
         return it
 
 
@@ -107,6 +110,7 @@ class RefJob:
         self.copies = {}              # режим -> количество копий (по умолчанию 1)
         self.strength = 0.5           # сила img2img (по умолчанию)
         self.watermark = False        # режим Watermark: без бренда, картинка ~исходная без водяного знака
+        self.clean_mode = False       # Clean по референсам: белый фон 1:1, без надписей
         self.overlay_path = None      # путь к PNG-водяному знаку для наложения поверх (относительно OUTPUT_DIR)
         self.status = "draft"         # draft | queued | running | done | error
         self.created_at = time.time()
@@ -129,6 +133,7 @@ class RefJob:
             "copies": self.copies,
             "strength": self.strength,
             "watermark": self.watermark,
+            "clean_mode": self.clean_mode,
             "overlay_path": self.overlay_path,
             "status": self.status,
             "created_at": self.created_at,
@@ -145,6 +150,7 @@ class RefJob:
         j.copies = d.get("copies", {})
         j.strength = d.get("strength", 0.5)
         j.watermark = d.get("watermark", False)
+        j.clean_mode = d.get("clean_mode", False)
         j.overlay_path = d.get("overlay_path")
         j.status = d.get("status", "draft")
         j.created_at = d.get("created_at", time.time())

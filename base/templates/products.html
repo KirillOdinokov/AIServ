@@ -6,35 +6,107 @@
   <div class="row align-items-center">
     <div class="col">
       <h2 class="page-title">Товары</h2>
-      <div class="text-secondary mt-1">Всего: {{ total }}</div>
+      <div class="text-secondary mt-1">Всего: {{ total }} · на странице: {{ rows|length }}</div>
     </div>
   </div>
 </div>
 
-<form method="get" action="{{ prefix }}/products" class="d-flex gap-2 mb-3" style="max-width:520px;">
-  <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Поиск по названию или SKU">
+<form method="get" action="{{ prefix }}/products" class="d-flex flex-wrap gap-2 mb-3" style="max-width:860px;">
+  <input type="text" name="q" value="{{ q }}" class="form-control flex-grow-1" style="min-width:240px;"
+         placeholder="Название или SKU (например, Стекло)">
+  <select name="per" class="form-select" style="width:auto;">
+    {% for n in (100, 200, 500) %}<option value="{{ n }}" {% if per == n %}selected{% endif %}>{{ n }} на стр.</option>{% endfor %}
+  </select>
   <button class="btn btn-primary">Найти</button>
   {% if q %}<a href="{{ prefix }}/products" class="btn btn-outline-secondary">Сброс</a>{% endif %}
 </form>
+
+<div class="card mb-2" id="bulkBar" style="display:none;">
+  <div class="card-body py-2 d-flex flex-wrap gap-2 align-items-center">
+    <span class="text-secondary">Выбрано: <b id="selCount">0</b></span>
+    <button class="btn btn-primary btn-sm" id="btnEdit">Редактировать выбранные</button>
+    <button class="btn btn-link btn-sm ms-auto" id="btnClear">Снять выделение</button>
+  </div>
+</div>
 
 <div class="card">
   <div class="table-responsive">
     <table class="table table-vcenter card-table">
       <thead>
-        <tr><th>ID</th><th>SKU</th><th>Название</th><th>Категория</th><th>Ед.</th><th>Вес, кг</th></tr>
+        <tr>
+          <th style="width:36px;"><input type="checkbox" id="checkAll" title="Выделить все на странице"></th>
+          <th>SKU</th>
+          <th>Название</th>
+          <th>Головная категория</th>
+          <th>Ед.</th>
+          <th>Цена</th>
+          <th>Поставщик</th>
+          <th>Адрес</th>
+          <th class="text-center">Логистика</th>
+          <th>Сайты</th>
+          <th>Дата цены</th>
+          <th>Источник цены</th>
+        </tr>
       </thead>
       <tbody>
         {% for r in rows %}
         <tr>
-          <td>{{ r.id }}</td>
-          <td>{{ r.sku or '—' }}</td>
-          <td>{{ r.name }}</td>
-          <td class="text-secondary">{{ r.category or '—' }}</td>
-          <td class="text-secondary">{{ r.unit or '—' }}</td>
-          <td class="text-secondary">{{ r.weight_kg or '—' }}</td>
+          <td><input type="checkbox" class="row-check" value="{{ r.id }}"></td>
+          <td class="text-secondary">{{ r.sku or '—' }}</td>
+          <td>{{ r.name }}{% if not r.is_published %} <span class="badge bg-secondary-lt" title="Архивный дубль в Amalor">архив</span>{% endif %}</td>
+          <td class="text-secondary">{{ r.head_category or '—' }}</td>
+          <td class="text-secondary">{{ r.unit or r.price_unit or '—' }}</td>
+          <td class="text-nowrap">
+            {% if r.price is not none %}{{ '%.2f'|format(r.price) }} {{ r.price_currency or 'RUB' }}{% else %}—{% endif %}
+          </td>
+          <td>
+            {% if r.suppliers %}
+              {% for s in r.suppliers %}
+              <div><a href="{{ office_base }}/database/suppliers/{{ s.slug }}/" target="_blank" rel="noopener">{{ s.name }}</a></div>
+              {% endfor %}
+            {% else %}
+              <span class="text-secondary">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% set cities = r.addresses | map(attribute='city') | select | unique | list %}
+            {% if cities %}
+              <span title="{% for a in r.addresses %}{{ a.address }}{% if a.label %} ({{ a.label }}){% endif %}{% if not loop.last %} · {% endif %}{% endfor %}">
+                {{ cities[:3] | join(', ') }}{% if cities|length > 3 %} <span class="text-secondary">+{{ cities|length - 3 }}</span>{% endif %}
+              </span>
+            {% else %}
+              <span class="text-secondary">—</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% set has_dims = r.dim_length_mm is not none or r.dim_width_mm is not none or r.dim_height_mm is not none %}
+            {% if r.weight_kg is not none or has_dims %}
+              <span class="text-success" title="{% if r.weight_kg is not none %}Вес: {{ '%.2f'|format(r.weight_kg) }} кг{% endif %}{% if has_dims %}{% if r.weight_kg is not none %} · {% endif %}Габариты: {{ r.dim_length_mm|int if r.dim_length_mm is not none else '—' }}×{{ r.dim_width_mm|int if r.dim_width_mm is not none else '—' }}×{{ r.dim_height_mm|int if r.dim_height_mm is not none else '—' }} мм{% endif %}">
+                <i class="ti ti-check"></i>
+              </span>
+            {% else %}
+              <span class="text-secondary">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.sites %}
+              {% for s in r.sites %}
+              <div><a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.name }}</a> <span class="text-secondary small">{{ s.domain }}</span></div>
+              {% endfor %}
+            {% else %}
+              <span class="text-secondary">—</span>
+            {% endif %}
+          </td>
+          <td class="text-secondary text-nowrap">{{ r.price_updated_at.strftime('%d.%m.%Y %H:%M') if r.price_updated_at else '—' }}</td>
+          <td class="text-secondary">
+            {% if r.price_source == 'amalor' %}Синхронизация Amalor
+            {% elif r.price_source == 'price_list' %}Прайс
+            {% elif r.price_source == 'manual' %}Вручную
+            {% else %}{{ r.price_source or '—' }}{% endif %}
+          </td>
         </tr>
         {% else %}
-        <tr><td colspan="6" class="text-secondary text-center py-4">Пока нет товаров</td></tr>
+        <tr><td colspan="12" class="text-secondary text-center py-4">Пока нет товаров</td></tr>
         {% endfor %}
       </tbody>
     </table>
@@ -43,9 +115,215 @@
 
 {% if total > per %}
 <div class="d-flex justify-content-center align-items-center gap-2 mt-3">
-  {% if page > 1 %}<a class="btn btn-outline-secondary btn-sm" href="{{ prefix }}/products?q={{ q }}&page={{ page - 1 }}">Назад</a>{% endif %}
+  {% if page > 1 %}<a class="btn btn-outline-secondary btn-sm" href="{{ prefix }}/products?q={{ q|urlencode }}&per={{ per }}&page={{ page - 1 }}">Назад</a>{% endif %}
   <span class="text-secondary">Стр. {{ page }} из {{ ((total - 1) // per) + 1 }}</span>
-  {% if page * per < total %}<a class="btn btn-outline-secondary btn-sm" href="{{ prefix }}/products?q={{ q }}&page={{ page + 1 }}">Далее</a>{% endif %}
+  {% if page * per < total %}<a class="btn btn-outline-secondary btn-sm" href="{{ prefix }}/products?q={{ q|urlencode }}&per={{ per }}&page={{ page + 1 }}">Далее</a>{% endif %}
 </div>
 {% endif %}
+
+<div class="modal modal-blur fade" id="editModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Изменить выбранные (<span id="mCount">0</span>)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-4">
+          <label class="form-label">Поставщик</label>
+          <input type="text" id="supSearch" class="form-control mb-1" placeholder="Начните вводить название поставщика…">
+          <div id="supResults" class="list-group" style="max-height:190px;overflow:auto;"></div>
+          <div id="supSelected" class="text-secondary small mt-1"></div>
+          <div class="mt-2">
+            <label class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="supMode" value="change" checked>
+              <span class="form-check-label">Заменить текущего</span>
+            </label>
+            <label class="form-check form-check-inline">
+              <input class="form-check-input" type="radio" name="supMode" value="add">
+              <span class="form-check-label">Добавить ещё</span>
+            </label>
+          </div>
+          <div class="form-hint">Если поставщик не выбран — поставщики не меняются.</div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label" for="mUnit">Единица измерения</label>
+          <input type="text" id="mUnit" class="form-control" placeholder="например: шт, м, кг, м2 (пусто — не менять)">
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label">Цена</label>
+          <div class="d-flex gap-2">
+            <select id="mPriceOp" class="form-select" style="max-width:200px;">
+              <option value="none">Не менять</option>
+              <option value="percent">Изменить на %</option>
+              <option value="fixed">Прибавить сумму</option>
+            </select>
+            <input type="number" id="mPriceValue" class="form-control" step="0.01" placeholder="например: 5 или -10">
+          </div>
+          <div class="form-hint">% — от текущей цены. Сумма — в рублях; можно отрицательную. Для процента 10 = +10%, -5 = -5%.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <span id="mStatus" class="text-secondary small me-auto"></span>
+        <button type="button" class="btn btn-link" data-bs-dismiss="modal">Отмена</button>
+        <button type="button" class="btn btn-primary" id="mApply">Применить</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PICKER = {{ picker|tojson }};
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const rows = () => Array.from(document.querySelectorAll('.row-check'));
+  const selected = () => rows().filter((c) => c.checked);
+  const bar = $('bulkBar');
+  let selSupplier = null;
+  let editModal = null;
+
+  function update() {
+    const n = selected().length;
+    $('selCount').textContent = n;
+    bar.style.display = n ? '' : 'none';
+    const all = $('checkAll');
+    const total = rows().length;
+    all.checked = total > 0 && n === total;
+    all.indeterminate = n > 0 && n < total;
+  }
+
+  $('checkAll').addEventListener('change', () => {
+    rows().forEach((c) => { c.checked = $('checkAll').checked; });
+    update();
+  });
+  rows().forEach((c) => c.addEventListener('change', update));
+  $('btnClear').addEventListener('click', () => {
+    rows().forEach((c) => { c.checked = false; });
+    update();
+  });
+
+  function renderSupplierList(q) {
+    const box = $('supResults');
+    box.innerHTML = '';
+    const ql = (q || '').trim().toLowerCase();
+    const items = (!ql ? PICKER : PICKER.filter((s) =>
+      (s.name || '').toLowerCase().includes(ql) || (s.slug || '').toLowerCase().includes(ql)
+    )).slice(0, 80);
+    if (!items.length) {
+      box.innerHTML = '<div class="text-secondary p-2 small">Ничего не найдено</div>';
+      return;
+    }
+    items.forEach((s) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'list-group-item list-group-item-action';
+      b.textContent = s.name;
+      b.addEventListener('click', () => {
+        selSupplier = s;
+        $('supSearch').value = s.name;
+        $('supSelected').textContent = 'Выбран: ' + s.name;
+        renderSupplierList('');
+      });
+      box.appendChild(b);
+    });
+  }
+
+  function openEditModal() {
+    const el = $('editModal');
+    el.style.display = 'block';
+    el.classList.add('show');
+    el.removeAttribute('aria-hidden');
+    el.setAttribute('aria-modal', 'true');
+    document.body.classList.add('modal-open');
+    if (!document.querySelector('.modal-backdrop')) {
+      const bd = document.createElement('div');
+      bd.className = 'modal-backdrop fade show';
+      document.body.appendChild(bd);
+    }
+  }
+
+  function closeEditModal() {
+    const el = $('editModal');
+    el.style.display = 'none';
+    el.classList.remove('show');
+    el.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+    const bd = document.querySelector('.modal-backdrop');
+    if (bd) bd.remove();
+  }
+
+  $('supSearch').addEventListener('input', (e) => renderSupplierList(e.target.value));
+
+  $('btnEdit').addEventListener('click', () => {
+    if (!selected().length) return;
+    selSupplier = null;
+    $('supSearch').value = '';
+    $('supSelected').textContent = '';
+    $('mUnit').value = '';
+    $('mPriceOp').value = 'none';
+    $('mPriceValue').value = '';
+    $('mStatus').textContent = '';
+    $('mCount').textContent = selected().length;
+    renderSupplierList('');
+    openEditModal();
+  });
+
+  document.querySelectorAll('#editModal [data-bs-dismiss="modal"]').forEach((b) => {
+    b.addEventListener('click', closeEditModal);
+  });
+  $('editModal').addEventListener('click', (e) => {
+    if (e.target === $('editModal')) closeEditModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && $('editModal').classList.contains('show')) closeEditModal();
+  });
+
+  $('mApply').addEventListener('click', async () => {
+    const ids = selected().map((c) => parseInt(c.value, 10));
+    if (!ids.length) return;
+    const mode = document.querySelector('input[name="supMode"]:checked').value;
+    const unit = $('mUnit').value.trim();
+    const priceOp = $('mPriceOp').value;
+    const priceVal = parseFloat($('mPriceValue').value);
+    if (!selSupplier && !unit && priceOp === 'none') {
+      return alert('Нечего менять: выберите поставщика, единицу или цену');
+    }
+    if (priceOp !== 'none' && (isNaN(priceVal) || priceVal === 0)) {
+      return alert('Укажите процент или сумму для изменения цены');
+    }
+    const body = {
+      product_ids: ids,
+      supplier_mode: selSupplier ? mode : 'none',
+      supplier_id: selSupplier ? selSupplier.id : null,
+      unit: unit,
+      price_op: priceOp,
+      price_value: priceOp === 'none' ? 0 : priceVal,
+    };
+    const st = $('mStatus');
+    st.textContent = 'Сохранение…';
+    try {
+      const res = await fetch('{{ prefix }}/api/products/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        st.textContent = 'Ошибка: ' + (await res.text());
+        return;
+      }
+      const data = await res.json();
+      st.textContent = 'Готово: поставщик ' + data.supplier + ', ед. ' + data.unit + ', цена ' + data.price;
+      setTimeout(() => location.reload(), 800);
+    } catch (e) {
+      st.textContent = 'Ошибка сети: ' + e;
+    }
+  });
+
+  update();
+})();
+</script>
 {% endblock %}

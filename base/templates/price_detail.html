@@ -1,0 +1,575 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Прайс {{ price.id }}{% endblock %}
+
+{% block head %}
+<style>
+  .price-table td { vertical-align: top; }
+  .price-cell { white-space: nowrap; font-size: .82rem; }
+  .price-cell.base { font-weight: 700; }
+  .cand-btn { max-width: 340px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .raw-extra { font-size: .75rem; color: #6c757d; }
+  .price-name { font-weight: 600; }
+  #productResults .btn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <div class="text-secondary small mb-1">
+        <a href="{{ prefix }}/prices">Прайсы</a> / задача #{{ price.id }}
+      </div>
+      <h2 class="page-title">{{ price.filename }}</h2>
+      <div class="text-secondary mt-1">
+        {{ price.supplier_name or 'поставщик не указан' }}
+        {% if price.price_date %} · прайс от {{ price.price_date.strftime('%d.%m.%Y') }}{% endif %}
+        · загружен {{ price.uploaded_at.strftime('%d.%m.%Y %H:%M') if price.uploaded_at else '—' }}
+        · <span class="badge {% if price.status == 'review' %}bg-yellow-lt{% elif price.status == 'applied' %}bg-green-lt{% elif price.status == 'failed' %}bg-red-lt{% else %}bg-blue-lt{% endif %}">{{ status_ru.get(price.status, price.status) }}</span>
+      </div>
+    </div>
+    <div class="col-auto ms-auto d-print-none">
+      <div class="btn-list">
+        <button class="btn btn-outline-secondary" onclick="rerunMatch()">
+          <i class="ti ti-refresh me-1"></i>Пересопоставить
+        </button>
+        <button class="btn btn-outline-secondary" onclick="approveAuto()">
+          <i class="ti ti-checks me-1"></i>Утвердить авто
+        </button>
+        <button class="btn btn-outline-danger" onclick="deleteTask()">
+          <i class="ti ti-trash me-1"></i>Удалить
+        </button>
+        <button class="btn btn-outline-secondary" onclick="createAssortment()">
+          <i class="ti ti-send me-1"></i>В расширение ассортимента
+        </button>
+        <button class="btn btn-primary" onclick="applyPrices()">
+          <i class="ti ti-database-import me-1"></i>Применить
+        </button>
+      </div>
+      <label class="form-check form-check-inline mt-2 mb-0">
+        <input type="checkbox" class="form-check-input" id="includeAuto">
+        <span class="form-check-label small">включая авто-совпадения</span>
+      </label>
+      <label class="form-check form-check-inline mt-2 mb-0">
+        <input type="checkbox" class="form-check-input" id="includeApplied">
+        <span class="form-check-label small">пересчитать применённые</span>
+      </label>
+      <div id="actionMsg" class="small mt-1"></div>
+    </div>
+  </div>
+</div>
+
+{% if price.error %}
+<div class="alert alert-danger">{{ price.error }}</div>
+{% endif %}
+{% if price.notes %}
+<div class="alert alert-secondary py-2">{{ price.notes }}</div>
+{% endif %}
+
+<div class="row row-cards mb-3">
+  <div class="col-6 col-md-2"><div class="card"><div class="card-body py-2"><div class="text-secondary small">Всего</div><div class="h2 mb-0">{{ counts.total }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card"><div class="card-body py-2"><div class="text-secondary small">Сопоставлено</div><div class="h2 mb-0">{{ counts.matched }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card"><div class="card-body py-2"><div class="text-secondary small">Авто</div><div class="h2 mb-0 text-primary">{{ counts.auto }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card"><div class="card-body py-2"><div class="text-secondary small">Утверждено</div><div class="h2 mb-0 text-success">{{ counts.approved }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card"><div class="card-body py-2"><div class="text-secondary small">Применено</div><div class="h2 mb-0 text-success">{{ counts.applied }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card"><div class="card-body py-2"><div class="text-secondary small">Без пары</div><div class="h2 mb-0 text-warning">{{ counts.unmatched }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card"><div class="card-body py-2"><div class="text-secondary small">Без цены</div><div class="h2 mb-0 text-secondary">{{ counts.no_price }}</div></div></div></div>
+  <div class="col-6 col-md-2"><div class="card"><div class="card-body py-2"><div class="text-secondary small">Без изменений</div><div class="h2 mb-0 text-secondary">{{ counts.kept }}</div></div></div></div>
+</div>
+
+{% if columns %}
+<div class="card mb-3">
+  <div class="card-header">
+    <h3 class="card-title">Колонки цен и типы</h3>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm card-table" id="columnsTable">
+      <thead>
+        <tr>
+          <th>Колонка</th>
+          <th style="width:150px;">Объём</th>
+          <th style="width:70px;">Ед.</th>
+          <th style="width:210px;">Тип цены</th>
+          <th style="width:120px;">Наценка</th>
+          <th style="width:100px;">Основная</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in columns %}
+        <tr data-col="{{ c.col_index }}">
+          <td title="{{ c.header }}">{{ c.header|truncate(110) }}</td>
+          <td>
+            {% if c.volume_min %}от {{ c.volume_min|int }}{% elif c.volume_max %}до {{ c.volume_max|int }}{% else %}—{% endif %}
+          </td>
+          <td>{{ c.unit or '—' }}</td>
+          <td>
+            <select class="form-select form-select-sm col-type">
+              <option value="input" {% if c.price_type == 'input' %}selected{% endif %}>Входная (наценка)</option>
+              <option value="retail" {% if c.price_type == 'retail' %}selected{% endif %}>Розничная</option>
+              <option value="mrc" {% if c.price_type == 'mrc' %}selected{% endif %}>МРЦ (строго)</option>
+              <option value="ignore" {% if c.price_type == 'ignore' %}selected{% endif %}>Не использовать</option>
+            </select>
+          </td>
+          <td>
+            <div class="input-group input-group-sm">
+              <input type="number" class="form-control col-markup" step="0.1" min="-100" max="1000"
+                     value="{{ c.markup_pct or 0 }}" title="% наценки для входной цены">
+              <span class="input-group-text">%</span>
+            </div>
+          </td>
+          <td>
+            <input type="radio" name="base_col" value="{{ c.col_index }}" class="form-check-input col-base"
+                   {% if c.is_base %}checked{% endif %}>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div class="text-secondary small">
+      Основная колонка — источник базовой розничной цены. Входная: к цене прайса добавляется наценка %.
+      Розничная: цена как есть. МРЦ: сайт получает ровно эту цену. Тип, наценка и основная колонка
+      запоминаются для поставщика и применятся к следующим прайсам.
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="saveColumns()">Сохранить колонки</button>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header flex-wrap gap-2">
+    <div class="d-flex flex-wrap gap-1">
+      {% set tabs = [
+        ('all', 'Все', counts.total),
+        ('unmatched', 'Без пары', counts.unmatched),
+        ('pending', 'Ожидают', counts.pending),
+        ('auto', 'Авто', counts.auto),
+        ('approved', 'Утверждены', counts.approved + counts.applied),
+        ('applied', 'Применены', counts.applied),
+        ('rejected', 'Отклонены', counts.rejected),
+        ('no_price', 'Без цены', counts.no_price),
+        ('kept', 'Без изменений', counts.kept)
+      ] %}
+      {% for key, label, n in tabs %}
+      <a class="btn btn-sm {% if state == key %}btn-primary{% else %}btn-outline-secondary{% endif %}"
+         href="?status={{ key }}&q={{ q|urlencode }}&per={{ per }}">{{ label }} <span class="badge bg-white text-dark ms-1">{{ n }}</span></a>
+      {% endfor %}
+    </div>
+    <form method="get" class="ms-auto d-flex gap-2" style="max-width:360px;">
+      <input type="hidden" name="status" value="{{ state }}">
+      <input type="hidden" name="per" value="{{ per }}">
+      <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="Поиск по названию или товару">
+      <button class="btn btn-sm btn-outline-secondary">Найти</button>
+      {% if q %}<a class="btn btn-sm btn-link" href="?status={{ state }}&per={{ per }}">Сброс</a>{% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table price-table">
+      <thead>
+        <tr>
+          <th style="width:52px;">#</th>
+          <th>Наименование в прайсе</th>
+          {% for c in columns %}
+          <th class="price-cell {% if c.is_base %}table-active{% endif %}" title="{{ c.header }}">
+            {{ (c.header.split('/')[-1]|trim)|truncate(28) }}{% if c.is_base %} <span class="text-primary">•</span>{% endif %}
+          </th>
+          {% endfor %}
+          <th class="price-cell table-active" style="min-width:130px;">Итог (в базу)</th>
+          <th style="min-width:260px;">Товар Базы</th>
+          <th style="width:100px;">Статус</th>
+          <th style="width:210px;">Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="text-secondary small">{{ item.row_num }}</td>
+          <td>
+            <div class="price-name">{{ item.raw_name }}</div>
+            {% if item.raw_sku %}<div class="small text-secondary">арт. {{ item.raw_sku }}</div>{% endif %}
+            {% for k, v in (item.raw_extra.items()|list)[:3] %}
+            <div class="raw-extra"><b>{{ k }}:</b> {{ v|truncate(110) }}</div>
+            {% endfor %}
+          </td>
+          {% for cell in item.price_cells %}
+          <td class="price-cell {% if cell.col.is_base %}base table-active{% endif %}">
+            {{ ('%.2f'|format(cell.value)) if cell.value is not none else '—' }}
+          </td>
+          {% endfor %}
+          <td class="price-cell">
+            <span class="{% if item.manual_price is not none %}text-primary fw-bold{% endif %}">
+              {{ ('%.2f'|format(item.base_retail)) if item.base_retail is not none else '—' }}
+            </span>
+            {% if item.manual_price is not none %}<span class="badge bg-purple-lt ms-1">вручную</span>{% endif %}
+            <button class="btn btn-sm btn-link p-0 ms-1" type="button" title="Цена вручную (уже с наценкой)"
+                    onclick="editPrice({{ item.id }}, {{ 'null' if item.base_retail is none else item.base_retail }})">✎</button>
+          </td>
+          <td>
+            {% if item.matched_product_id %}
+              <div class="fw-bold">{{ item.product_name or item.db_name }}</div>
+              <div class="small text-secondary">
+                {{ item.product_sku or item.base_sku or '—' }}
+                {% if item.match_method %} · {{ item.match_method }}{% endif %}
+                {% if item.match_score is not none %} · {{ '%.2f'|format(item.match_score) }}{% endif %}
+              </div>
+            {% else %}
+              <div class="text-secondary">не сопоставлено</div>
+            {% endif %}
+            <button class="btn btn-sm btn-link p-0" type="button"
+                    onclick='openProductModal({{ item.id }}, {{ item.raw_name|tojson }})'>
+              {{ 'изменить товар' if item.matched_product_id else 'найти в Базе' }}
+            </button>
+            {% if item.candidates and (not item.matched_product_id or item.match_status in ['pending', 'auto']) %}
+            <div class="mt-1 d-flex flex-column gap-1">
+              {% for c in item.candidates[:3] %}
+              <button class="btn btn-sm btn-outline-secondary py-0 cand-btn" type="button"
+                      title="{{ c.name }} · {{ c.manufacturer_sku or c.sku or '' }} · {{ '%.2f'|format(c.score) }}{% if c.duplicate_count %} · скрыто дублей: {{ c.duplicate_count }}{% endif %}"
+                      onclick="assignProduct({{ item.id }}, {{ c.product_id }})">
+                {{ c.name|truncate(48) }}
+                <span class="text-secondary">({{ '%.2f'|format(c.score) }})</span>
+                {% if c.duplicate_count %}<span class="badge bg-secondary-lt ms-1" title="скрыто дублей: {{ c.duplicate_count }}">+{{ c.duplicate_count }}</span>{% endif %}
+              </button>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </td>
+          <td>
+            {% set ms = item.match_status %}
+            <span class="badge {% if ms in ['approved', 'applied'] %}bg-green-lt{% elif ms == 'auto' %}bg-blue-lt{% elif ms == 'rejected' %}bg-red-lt{% elif ms in ['no_price', 'kept'] %}bg-secondary-lt{% else %}bg-yellow-lt{% endif %}">
+              {% if ms == 'pending' %}ожидает{% elif ms == 'auto' %}авто{% elif ms == 'approved' %}утверждён{% elif ms == 'applied' %}применён{% elif ms == 'rejected' %}отклонён{% elif ms == 'no_price' %}нет цены{% elif ms == 'kept' %}цена не менялась{% else %}{{ ms }}{% endif %}
+            </span>
+            {% if item.applied_price is not none %}
+            <div class="small text-success">{{ '%.2f'|format(item.applied_price) }}</div>
+            {% endif %}
+          </td>
+          <td>
+            {% if item.match_status == 'no_price' %}
+            <div class="btn-list flex-nowrap">
+              <button class="btn btn-sm btn-outline-secondary" type="button"
+                      onclick='openProductModal({{ item.id }}, {{ item.raw_name|tojson }})'>Найти</button>
+            </div>
+            <span class="text-secondary small">нет цены в прайсе</span>
+            {% elif item.match_status == 'kept' %}
+            <div class="btn-list flex-nowrap">
+              <button class="btn btn-sm btn-outline-secondary" type="button"
+                      onclick='openProductModal({{ item.id }}, {{ item.raw_name|tojson }})'>Найти</button>
+            </div>
+            <span class="text-secondary small">цена не менялась</span>
+            {% else %}
+            <div class="btn-list flex-nowrap">
+              {% if item.matched_product_id and item.match_status in ['pending', 'auto'] %}
+              <button class="btn btn-sm btn-success" type="button" onclick="setStatus({{ item.id }}, 'approved')">Утвердить</button>
+              {% endif %}
+              {% if item.match_status == 'rejected' %}
+              <button class="btn btn-sm btn-outline-secondary" type="button" onclick="setStatus({{ item.id }}, 'pending')">Вернуть</button>
+              <button class="btn btn-sm btn-outline-secondary" type="button"
+                      onclick='openProductModal({{ item.id }}, {{ item.raw_name|tojson }})'>Найти</button>
+              {% else %}
+              <button class="btn btn-sm btn-outline-secondary" type="button"
+                      onclick='openProductModal({{ item.id }}, {{ item.raw_name|tojson }})'>Найти</button>
+              {% if item.match_status != 'applied' %}
+              <button class="btn btn-sm btn-outline-danger" type="button" onclick="setStatus({{ item.id }}, 'rejected')">Отклонить</button>
+              {% endif %}
+              {% endif %}
+            </div>
+            {% if item.match_status == 'applied' %}<span class="text-success small">применено</span>{% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="{{ 6 + columns|length }}" class="text-center text-secondary py-4">Нет строк по выбранному фильтру</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if total > per %}
+  {% set pages = ((total - 1) // per) + 1 %}
+  <div class="card-footer d-flex justify-content-center align-items-center gap-2">
+    {% if page > 1 %}<a class="btn btn-sm btn-outline-secondary" href="?status={{ state }}&q={{ q|urlencode }}&per={{ per }}&page={{ page - 1 }}">Назад</a>{% endif %}
+    <span class="text-secondary small">Стр. {{ page }} из {{ pages }} · всего {{ total }}</span>
+    {% if page < pages %}<a class="btn btn-sm btn-outline-secondary" href="?status={{ state }}&q={{ q|urlencode }}&per={{ per }}&page={{ page + 1 }}">Далее</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<div class="modal modal-blur fade" id="productModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Поиск товара в Базе</h5>
+        <button type="button" class="btn-close" aria-label="Закрыть" onclick="hideProductModal()"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-secondary small mb-2">Строка прайса: <span id="productModalRow">—</span></div>
+        <div class="d-flex gap-2 mb-2">
+          <input type="text" class="form-control" id="productQuery" placeholder="Название, артикул, SKU или ID…">
+          <button class="btn btn-primary" type="button" id="productSearchBtn">Найти</button>
+        </div>
+        <label class="form-check mb-2">
+          <input type="checkbox" class="form-check-input" id="onlySupplier" checked>
+          <span class="form-check-label small">только поставщик прайса ({{ price.supplier_name or '—' }})</span>
+        </label>
+        <div id="productResultsInfo" class="text-secondary small mb-1"></div>
+        <div id="productResults" class="border rounded p-2" style="max-height:420px;overflow:auto;"></div>
+        <div class="hr my-3"></div>
+        <div class="d-flex gap-2 align-items-center">
+          <input type="number" class="form-control" id="productIdInput" placeholder="ID товара" style="max-width:180px;">
+          <button class="btn btn-outline-secondary" type="button" id="assignById">Привязать по ID</button>
+          <span class="text-secondary small">Если знаете ID товара в Базе.</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-link" onclick="hideProductModal()">Отмена</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PREFIX = {{ prefix|tojson }};
+const PRICE_ID = {{ price.id }};
+const SUPPLIER_ID = {{ price.supplier_id or 0 }};
+let currentItemId = null;
+let productModal = null;
+
+function setMsg(text, type) {
+  const el = document.getElementById('actionMsg');
+  el.className = 'small mt-1 ' + (type === 'error' ? 'text-danger' : 'text-success');
+  el.textContent = text || '';
+}
+
+async function api(url, options) {
+  const res = await fetch(PREFIX + url, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+  return data;
+}
+
+async function assignProduct(itemId, productId) {
+  try {
+    setMsg('Сохраняем сопоставление…');
+    await api(`/api/prices/${PRICE_ID}/items/${itemId}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product_id: productId })
+    });
+    window.location.reload();
+  } catch (e) { setMsg(e.message, 'error'); }
+}
+
+async function setStatus(itemId, status) {
+  try {
+    setMsg('Сохраняем статус…');
+    await api(`/api/prices/${PRICE_ID}/items/${itemId}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    window.location.reload();
+  } catch (e) { setMsg(e.message, 'error'); }
+}
+
+async function editPrice(itemId, current) {
+  const value = prompt('Базовая розничная цена (уже с наценкой), руб.:', current != null ? current : '');
+  if (value === null) return;
+  const trimmed = value.trim();
+  let manual = null;
+  if (trimmed !== '') {
+    manual = Number(trimmed.replace(',', '.'));
+    if (!isFinite(manual) || manual <= 0) {
+      setMsg('Введите положительную цену или оставьте пустым для сброса', 'error');
+      return;
+    }
+  }
+  try {
+    setMsg('Сохраняем цену…');
+    await api(`/api/prices/${PRICE_ID}/items/${itemId}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ manual_price: manual })
+    });
+    window.location.reload();
+  } catch (e) { setMsg(e.message, 'error'); }
+}
+
+async function saveColumns() {
+  const columns = [...document.querySelectorAll('#columnsTable tr[data-col]')].map((tr) => ({
+    col_index: Number(tr.dataset.col),
+    price_type: tr.querySelector('.col-type').value,
+    markup_pct: Number(tr.querySelector('.col-markup').value || 0),
+    is_base: tr.querySelector('.col-base').checked
+  }));
+  try {
+    setMsg('Сохраняем колонки…');
+    await api(`/api/prices/${PRICE_ID}/columns`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ columns })
+    });
+    window.location.reload();
+  } catch (e) { setMsg(e.message, 'error'); }
+}
+
+async function rerunMatch() {
+  if (!confirm('Пересопоставить непринятые строки (ожидают/авто)? Утверждённые и применённые останутся без изменений.')) return;
+  try {
+    setMsg('Сопоставляем…');
+    await api(`/api/prices/${PRICE_ID}/match`, { method: 'POST' });
+    window.location.reload();
+  } catch (e) { setMsg(e.message, 'error'); }
+}
+
+async function approveAuto() {
+  try {
+    setMsg('Утверждаем авто-совпадения…');
+    const data = await api(`/api/prices/${PRICE_ID}/approve-auto`, { method: 'POST' });
+    setMsg('Утверждено: ' + data.count);
+    window.location.reload();
+  } catch (e) { setMsg(e.message, 'error'); }
+}
+
+async function applyPrices() {
+  const includeAuto = document.getElementById('includeAuto').checked;
+  const includeApplied = document.getElementById('includeApplied').checked;
+  if (!confirm('Применить утверждённые цены в Базу? Изменения попадут в историю цен и очередь сайтов.')) return;
+  try {
+    setMsg('Применяем…');
+    const data = await api(`/api/prices/${PRICE_ID}/apply`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ include_auto: includeAuto, include_applied: includeApplied })
+    });
+    let message = `Применено: ${data.applied}. Без изменений: ${data.kept || 0}. Пропущено: ${data.skipped}. Обновлений сайтов: ${data.site_updates}.`;
+    if (data.open > 0) {
+      message += `\nОсталось на проверке: ${data.open}. Статус: применён частично.`;
+    } else {
+      message += '\nВсе строки обработаны — задача применена.';
+    }
+    alert(message);
+    window.location.reload();
+  } catch (e) { setMsg(e.message, 'error'); }
+}
+
+async function createAssortment() {
+  if (!confirm('Создать/обновить задачу «Расширение ассортимента» из несопоставленных строк?')) return;
+  try {
+    setMsg('Сохраняем несопоставленные товары…');
+    const data = await api(`/api/prices/${PRICE_ID}/assortment`, { method: 'POST' });
+    window.location.href = PREFIX + '/publication/assortment/' + data.id;
+  } catch (e) { setMsg(e.message, 'error'); }
+}
+
+async function deleteTask() {
+  if (!confirm('Удалить задачу и все её строки? Файл тоже будет удалён.')) return;
+  try {
+    await api(`/api/prices/${PRICE_ID}`, { method: 'DELETE' });
+    window.location.href = PREFIX + '/prices';
+  } catch (e) { setMsg(e.message, 'error'); }
+}
+
+function showProductModal() {
+  const el = document.getElementById('productModal');
+  el.style.display = 'block';
+  el.classList.add('show');
+  el.removeAttribute('aria-hidden');
+  document.body.classList.add('modal-open');
+  if (!document.querySelector('.modal-backdrop')) {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop fade show';
+    document.body.appendChild(backdrop);
+  }
+}
+
+function hideProductModal() {
+  const el = document.getElementById('productModal');
+  el.style.display = 'none';
+  el.classList.remove('show');
+  el.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+  const backdrop = document.querySelector('.modal-backdrop');
+  if (backdrop) backdrop.remove();
+}
+
+function openProductModal(itemId, rawName) {
+  currentItemId = itemId;
+  document.getElementById('productModalRow').textContent = rawName || '—';
+  document.getElementById('productQuery').value = '';
+  document.getElementById('productResults').innerHTML = '';
+  document.getElementById('productResultsInfo').textContent = '';
+  document.getElementById('productIdInput').value = '';
+  showProductModal();
+  setTimeout(() => {
+    document.getElementById('productQuery').focus();
+    searchProducts();
+  }, 200);
+}
+
+async function searchProducts() {
+  const q = document.getElementById('productQuery').value.trim();
+  const onlySupplier = document.getElementById('onlySupplier').checked;
+  const box = document.getElementById('productResults');
+  const info = document.getElementById('productResultsInfo');
+  if (!q && (!SUPPLIER_ID || !onlySupplier)) {
+    box.innerHTML = '<div class="text-secondary small">Введите название, артикул, SKU или ID</div>';
+    info.textContent = '';
+    return;
+  }
+  box.innerHTML = '<div class="text-secondary small">Ищем…</div>';
+  info.textContent = '';
+  try {
+    let url = '/api/prices/search-products?q=' + encodeURIComponent(q);
+    if (SUPPLIER_ID) url += '&supplier_id=' + SUPPLIER_ID;
+    url += '&only_supplier=' + (onlySupplier ? 1 : 0);
+    const data = await api(url);
+    box.innerHTML = '';
+    info.textContent = 'Найдено: ' + data.items.length + (q ? '' : ' · товары поставщика');
+    if (!data.items.length) {
+      box.innerHTML = '<div class="text-secondary small">Ничего не найдено. Проверьте название или привяжите по ID.</div>';
+      return;
+    }
+    for (const p of data.items) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-sm btn-outline-secondary d-block text-start w-100 mb-1';
+      const price = p.price != null ? p.price : '—';
+      btn.textContent = `${p.name} · ${p.manufacturer_sku || p.sku || '—'} · ${price}` +
+        (p.supplier_slug ? ` · ${p.supplier_slug}` : '') +
+        (p.duplicate_count ? ` · дублей: ${p.duplicate_count}` : '');
+      btn.title = btn.textContent;
+      btn.onclick = () => assignProduct(currentItemId, p.id || p.product_id);
+      box.appendChild(btn);
+    }
+  } catch (e) {
+    box.innerHTML = '<div class="text-danger small">' + e.message + '</div>';
+  }
+}
+
+document.getElementById('productSearchBtn').addEventListener('click', searchProducts);
+let productSearchTimer = null;
+document.getElementById('productQuery').addEventListener('input', () => {
+  clearTimeout(productSearchTimer);
+  productSearchTimer = setTimeout(searchProducts, 350);
+});
+document.getElementById('productQuery').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); searchProducts(); }
+});
+document.getElementById('onlySupplier').addEventListener('change', searchProducts);
+document.getElementById('assignById').addEventListener('click', () => {
+  const id = Number(document.getElementById('productIdInput').value);
+  if (id) assignProduct(currentItemId, id);
+});
+document.getElementById('productModal').addEventListener('click', (e) => {
+  if (e.target.id === 'productModal') hideProductModal();
+});
+document.addEventListener('keydown', (e) => {
+  const modal = document.getElementById('productModal');
+  if (e.key === 'Escape' && modal && modal.classList.contains('show')) hideProductModal();
+});
+document.querySelectorAll('.col-type').forEach((sel) => sel.addEventListener('change', () => {
+  if (sel.value === 'ignore') {
+    const radio = sel.closest('tr').querySelector('.col-base');
+    if (radio) radio.checked = false;
+  }
+}));
+</script>
+{% endblock %}

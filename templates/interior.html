@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Визуализация интерьера{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Визуализация интерьера</h2>
+      <div class="text-secondary mt-1">Загрузите фото помещения и опишите, что нужно изменить — получите несколько вариантов</div>
+    </div>
+    <div class="col-auto ms-auto">
+      <a href="/ref" class="btn btn-outline-secondary btn-sm">Генерация по референсам</a>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Референс и запрос</h3></div>
+      <div class="card-body">
+        <form id="interiorForm">
+          <div class="mb-3">
+            <label class="form-label" for="interiorFile">Фото интерьера</label>
+            <input type="file" id="interiorFile" class="form-control" accept="image/*" required>
+            <div class="form-hint">JPG/PNG/WebP. Это изображение передаётся Klein как референс.</div>
+            <img id="interiorPreview" class="mt-2 border" style="display:none;max-width:100%;max-height:240px;" alt="preview">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="interiorPrompt">Что нужно сделать</label>
+            <textarea id="interiorPrompt" class="form-control" rows="4" required
+              placeholder="Например: нужна визуализация офиса с разными офисными перегородками, сохранить столы, окна и освещение"></textarea>
+          </div>
+
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="interiorCount">Вариантов</label>
+              <input type="number" id="interiorCount" class="form-control" min="1" max="8" step="1" value="4">
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="interiorSize">Формат</label>
+              <select id="interiorSize" class="form-select">
+                <option value="square">1:1 (1024×1024)</option>
+                <option value="4:3">4:3 (1152×864)</option>
+                <option value="16:9">16:9 (1344×768)</option>
+              </select>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="form-label" for="interiorProvider">LLM для промптов</label>
+              <select id="interiorProvider" class="form-select">
+                <option value="deepseek" selected>DeepSeek API (deepseek-v4-flash)</option>
+                <option value="local">Ollama локально (qwen3:14b, CPU — медленно)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label" for="interiorModel">Модель (опционально)</label>
+            <input type="text" id="interiorModel" class="form-control" placeholder="например: qwen3.5:397b или deepseek-v4-flash">
+            <div class="form-hint">Если пусто — модель по умолчанию для выбранного провайдера.</div>
+          </div>
+
+          <button type="submit" class="btn btn-primary" id="interiorSubmit">Сгенерировать варианты</button>
+          <span id="interiorStatus" class="text-secondary ms-2"></span>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card mb-3">
+      <div class="card-header"><h3 class="card-title">Как это работает</h3></div>
+      <div class="card-body text-secondary">
+        <ol class="mb-0">
+          <li>Фото интерьера уходит в FLUX.2 Klein как референс.</li>
+          <li>LLM (Ollama/DeepSeek) составляет N разных промптов по вашему запросу.</li>
+          <li>Klein генерирует N вариантов, сохраняя планировку, ракурс и освещение.</li>
+          <li>Результат можно скачать по одному или ZIP-архивом.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Последние задачи</h3></div>
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+          <thead><tr><th>Задача</th><th>Готово</th><th>Статус</th><th></th></tr></thead>
+          <tbody id="interiorJobsBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/interior.js?v=1"></script>
+{% endblock %}

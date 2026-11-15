@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Трафик сайтов{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Трафик сайтов</h2>
+      <div class="text-secondary mt-1">Люди и поисковые / AI / SEO-боты по логам nginx (webnara)</div>
+    </div>
+    <div class="col-auto ms-auto">
+      <div class="btn-group btn-group-sm" id="periodGroup">
+        <button class="btn btn-outline-secondary" data-period="hour">Час</button>
+        <button class="btn btn-outline-secondary active" data-period="day">День</button>
+        <button class="btn btn-outline-secondary" data-period="yesterday">Вчера</button>
+        <button class="btn btn-outline-secondary" data-period="week">Неделя</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-deck row-cards mb-3" id="totalsRow"></div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">По сайтам</h3>
+    <div class="card-actions text-secondary small" id="updatedAt"></div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th>Сайт</th>
+          <th>Люди</th>
+          <th>Боты</th>
+          <th>Доля ботов</th>
+          <th>Search</th>
+          <th>AI</th>
+          <th>SEO</th>
+          <th>Топ боты</th>
+        </tr>
+      </thead>
+      <tbody id="sitesTable">
+        <tr><td colspan="8" class="text-secondary text-center py-4">Загрузка…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/sites_stats.js?v=1"></script>
+{% endblock %}

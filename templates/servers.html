@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Серверы{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Серверы</h2>
+      <div class="text-secondary mt-1">Парк машин и состояние здоровья</div>
+    </div>
+    <div class="col-auto ms-auto text-secondary small" id="updatedAt"></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th>Сервер</th>
+          <th>IP</th>
+          <th>CPU</th>
+          <th>RAM</th>
+          <th>Диски</th>
+          <th>Темп.</th>
+          <th>LA</th>
+          <th>Данные</th>
+        </tr>
+      </thead>
+      <tbody id="serversTable">
+        <tr><td colspan="8" class="text-secondary text-center py-4">Загрузка…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/servers.js?v=5"></script>
+{% endblock %}

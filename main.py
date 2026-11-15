@@ -17,6 +17,8 @@ from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
 import config
+import server_metrics
+import sites_stats
 from store import store, Job, Item, Variant
 from task_queue import queue
 from downloader import downloader
@@ -24,6 +26,8 @@ from llm_store import llm_store, LlmJob, LlmItem
 from llm_queue import llm_queue
 from ref_store import ref_store, RefJob, RefItem, RefVariant
 from ref_queue import ref_queue
+from interior_store import interior_store, InteriorJob
+from interior_queue import interior_queue
 from thumb_store import thumb_store, ThumbJob
 import thumb_worker
 import llm_client
@@ -31,6 +35,9 @@ import wp_publish
 import nanobanana_client
 import comfy_client
 import image_search
+import cars_catalog
+import cars_service
+import restyle_service
 from upscale_store import upscale_store, UpscaleBatch, UpscaleItem
 from generator import generator
 
@@ -64,7 +71,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if (path.startswith("/login")
                 or path == "/api/login"
                 or path == "/api/logout"
-                or path.startswith("/static")):
+                or path == "/api/metrics/ingest"
+                or path.startswith("/static")
+                or path.startswith("/public/cars/")
+                ):
             return await call_next(request)
         token = request.cookies.get(SESSION_COOKIE)
         if token not in _sessions:
@@ -120,6 +130,7 @@ def startup():
     queue.resume_all()
     llm_queue.resume_all()
     ref_queue.resume_all()
+    interior_queue.resume_all()
 
     # Догружаем незавершённые видео-задачи и продолжаем их дожидаться
     _load_video_jobs()
@@ -456,6 +467,61 @@ def server_hard_reset():
     return {"ok": True, "message": "Перезагрузка сервера..."}
 
 
+# ─── Метрики серверов (мониторинг парка машин) ───────────────────────────────
+
+METRICS_KEY = os.getenv("METRICS_KEY", "")
+
+
+@app.post("/api/metrics/ingest")
+async def metrics_ingest(request: Request):
+    """Приём сэмпла от агента на удалённом сервере (X-Metrics-Key)."""
+    incoming = request.headers.get("X-Metrics-Key", "")
+    if not METRICS_KEY or not secrets.compare_digest(incoming, METRICS_KEY):
+        raise HTTPException(401, "unauthorized")
+    try:
+        data = await request.json()
+    except Exception:
+        raise HTTPException(400, "bad json")
+    if not isinstance(data, dict):
+        raise HTTPException(400, "bad payload")
+    try:
+        server_metrics.add_sample(data)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return {"ok": True}
+
+
+@app.get("/api/metrics/servers")
+def metrics_servers():
+    """Список серверов с последними метриками."""
+    return {"servers": server_metrics.list_servers()}
+
+
+@app.get("/api/metrics/servers/{server}")
+def metrics_server_one(server: str):
+    """Последние метрики и конфиг одного сервера."""
+    data = server_metrics.get_server(server)
+    if data is None:
+        raise HTTPException(404, "Сервер не найден")
+    return data
+
+
+@app.get("/api/metrics/series")
+def metrics_series(server: str, period: str = "day"):
+    """Агрегированный ряд по серверу за период: hour|day|week|month."""
+    return server_metrics.series(server, period)
+
+
+# ─── Статистика сайтов (люди vs боты из логов nginx) ────────────────────────
+
+@app.get("/api/sites/stats")
+def sites_stats_api(period: str = "day"):
+    try:
+        return sites_stats.get_stats(period)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(502, f"stats unavailable: {e}")
+
+
 # ─── Страницы ────────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
@@ -471,6 +537,22 @@ def tasks_page(request: Request):
 @app.get("/server", response_class=HTMLResponse)
 def server_page(request: Request):
     return templates.TemplateResponse(request, "server.html", {"active": "server"})
+
+
+@app.get("/servers", response_class=HTMLResponse)
+def servers_page(request: Request):
+    return templates.TemplateResponse(request, "servers.html", {"active": "servers"})
+
+
+@app.get("/servers/{server}", response_class=HTMLResponse)
+def server_detail_page(server: str, request: Request):
+    return templates.TemplateResponse(
+        request, "server_detail.html", {"active": "servers", "server": server})
+
+
+@app.get("/sites", response_class=HTMLResponse)
+def sites_stats_page(request: Request):
+    return templates.TemplateResponse(request, "sites_stats.html", {"active": "sites_stats"})
 
 
 @app.get("/base", response_class=HTMLResponse)
@@ -521,6 +603,16 @@ def ref_map_page(upload_id: str, request: Request):
 @app.get("/ref/result/{job_id}", response_class=HTMLResponse)
 def ref_result_page(job_id: str, request: Request):
     return templates.TemplateResponse(request, "ref_result.html", {"active": "refs"})
+
+
+@app.get("/interior", response_class=HTMLResponse)
+def interior_page(request: Request):
+    return templates.TemplateResponse(request, "interior.html", {"active": "interior"})
+
+
+@app.get("/interior/result/{job_id}", response_class=HTMLResponse)
+def interior_result_page(job_id: str, request: Request):
+    return templates.TemplateResponse(request, "interior_result.html", {"active": "interior"})
 
 
 @app.get("/thumbs", response_class=HTMLResponse)
@@ -939,6 +1031,13 @@ def resume_job(job_id: str):
     return {"ok": True, "paused": False}
 
 
+@app.post("/api/jobs/{job_id}/stop")
+def stop_job(job_id: str):
+    if not queue.stop_job(job_id):
+        raise HTTPException(404, "Задача не найдена")
+    return {"ok": True, "status": "stopped"}
+
+
 # ─── Управление очередью (пауза/возобновление) ──────────────────────────────
 
 @app.get("/api/queue/status")
@@ -978,12 +1077,14 @@ def queue_status():
 @app.post("/api/queue/pause")
 def queue_pause():
     queue.pause()
+    interior_queue.pause()
     return {"paused": True}
 
 
 @app.post("/api/queue/resume")
 def queue_resume():
     queue.resume()
+    interior_queue.resume()
     return {"paused": False}
 
 
@@ -1258,12 +1359,22 @@ def delete_job(job_id: str):
     if job is None:
         raise HTTPException(404, "Задача не найдена")
 
+    queue.cancel_job(job_id)
+
     # У каждой задачи своя уникальная папка (номер задачи), удаляем её.
     import shutil
     job_folder = job.folder_name() or f"job_{job_id}"
     results_dir = config.OUTPUT_DIR / job_folder
     if results_dir.exists():
         shutil.rmtree(results_dir, ignore_errors=True)
+
+    # Временные файлы single/batch и прочие остатки задачи.
+    for temp_dir in (
+        config.OUTPUT_DIR / "temp" / job_id,
+        config.OUTPUT_DIR / job_folder / "references",
+    ):
+        if temp_dir.exists():
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
     # очищаем статус финализации
     _finalize_status.pop(job_id, None)
@@ -1278,7 +1389,7 @@ def get_output(filename: str):
     path = config.OUTPUT_DIR / filename
     if not path.exists():
         raise HTTPException(404, "Файл не найден")
-    return FileResponse(path)
+    return FileResponse(path, headers={"Cache-Control": "public, max-age=3600"})
 
 
 @app.get("/api/thumb/{filename:path}")
@@ -1306,9 +1417,10 @@ def get_thumb(filename: str, size: int = 400):
                 im.save(thumb_path, "JPEG", quality=70, optimize=True, progressive=True)
         except Exception:
             # если не удалось — отдаём оригинал
-            return FileResponse(path)
+            return FileResponse(path, headers={"Cache-Control": "public, max-age=3600"})
 
-    return FileResponse(thumb_path, media_type="image/jpeg")
+    return FileResponse(thumb_path, media_type="image/jpeg",
+                        headers={"Cache-Control": "public, max-age=3600"})
 
 
 # ─── Сериализация ────────────────────────────────────────────────────────────
@@ -1537,10 +1649,12 @@ def llm_resume():
 
 # ─── Генерация по референсам ───────────────────────────────────────────────
 
-def _parse_ref_csv_rows(rows, mapping=None):
+def _parse_ref_csv_rows(rows, mapping=None, manual_types=None):
     """Разобрать строки CSV референсов по сопоставлению колонок.
 
     mapping: {expected_field: source_column}. Если None — авто-поиск по именам.
+    manual_types: список типов, выбранных вручную (применяется ко всем строкам
+    вместо колонки type). Например: ["standart", "clean"].
     expected: title (post_title), id, image, type.
     """
     def _get(row, *names):
@@ -1554,6 +1668,8 @@ def _parse_ref_csv_rows(rows, mapping=None):
         if mapping:
             return mapping.get(field)
         return None
+
+    manual_types = [t for t in (manual_types or []) if t]
 
     items = []
     for row in rows:
@@ -1572,13 +1688,17 @@ def _parse_ref_csv_rows(rows, mapping=None):
         if not title and not item_id:
             continue
 
-        # all_product -> storage + standart
-        expand = config.REF_TYPE_MULTI.get(rtype, [rtype])
+        requested = manual_types if manual_types else [rtype]
+        expanded = []
+        for t in requested:
+            for type_name in config.REF_TYPE_MULTI.get(t, [t]):
+                if type_name in config.REF_TYPES and type_name not in expanded:
+                    expanded.append(type_name)
+        if not expanded:
+            expanded = ["standart"]
 
-        for t in expand:
-            info = config.REF_TYPES.get(t)
-            if info is None:
-                continue
+        for t in expanded:
+            info = config.REF_TYPES[t]
             it = RefItem(
                 title=title,
                 item_id=item_id,
@@ -1624,7 +1744,12 @@ def ref_create_job(upload_id: str, body: dict):
         raise HTTPException(404, "Загрузка не найдена")
 
     mapping = body.get("mapping", {}) or {}
-    items = _parse_ref_csv_rows(up["rows"], mapping=mapping or None)
+    manual_types = body.get("manual_types", []) or []
+    if not isinstance(manual_types, list):
+        manual_types = []
+    allowed = set(config.REF_TYPES) | set(config.REF_TYPE_MULTI)
+    manual_types = [t for t in manual_types if isinstance(t, str) and t in allowed]
+    items = _parse_ref_csv_rows(up["rows"], mapping=mapping or None, manual_types=manual_types or None)
     if not items:
         raise HTTPException(400, "Не найдено строк (проверьте сопоставление колонок title/ID)")
 
@@ -1714,11 +1839,20 @@ def ref_configure(job_id: str, body: dict):
     job.copies = copies_map
     job.strength = strength
     job.watermark = bool(body.get("watermark", False))
+    job.clean_mode = bool(body.get("clean_mode", False))
 
     # Привязка режима к модели
     for item in job.items:
+        if job.clean_mode:
+            item.ref_type = "clean"
+            item.width = config.REF_TYPES["clean"]["width"]
+            item.height = config.REF_TYPES["clean"]["height"]
+
         # строим промпт по шаблону типа (или по правилу Watermark)
-        if job.watermark:
+        if job.clean_mode:
+            item.prompt = config.REF_TYPES["clean"]["prompt"].format(
+                title=item.title or "", site=site_name or "")
+        elif job.watermark:
             item.prompt = config.REF_WATERMARK_RULE
         else:
             info = config.REF_TYPES.get(item.ref_type, {})
@@ -1817,6 +1951,13 @@ def ref_resume(job_id: str):
     return {"ok": True, "paused": False}
 
 
+@app.post("/api/ref/jobs/{job_id}/stop")
+def ref_stop(job_id: str):
+    if not ref_queue.stop_job(job_id):
+        raise HTTPException(404, "Задача не найдена")
+    return {"ok": True, "status": "stopped"}
+
+
 @app.post("/api/ref/jobs/{job_id}/items/{item_id}/regenerate")
 def ref_regenerate(job_id: str, item_id: str, body: dict):
     job = ref_store.get_job(job_id)
@@ -1849,10 +1990,18 @@ def ref_approve(job_id: str, item_id: str, body: dict):
         raise HTTPException(404, "Строка не найдена")
 
     variant_id = body.get("variant_id")
-    if item.approved_variant_id == variant_id:
+    use_source = bool(body.get("source"))
+    if use_source:
+        if not item.source_path:
+            raise HTTPException(400, "У этой строки нет исходного изображения")
+        item.approved_source = not item.approved_source
         item.approved_variant_id = None
     else:
-        item.approved_variant_id = variant_id
+        item.approved_source = False
+        if item.approved_variant_id == variant_id:
+            item.approved_variant_id = None
+        else:
+            item.approved_variant_id = variant_id
     ref_store.update_job(job)
     return _ref_job_to_dict(job)
 
@@ -1865,11 +2014,14 @@ def ref_approve_all(job_id: str):
 
     selected = 0
     for item in job.items:
-        if item.approved_variant_id:
+        if item.approved_variant_id or item.approved_source:
             continue
         variant = next((v for v in item.variants if v.status == "done" and v.filename), None)
         if variant is not None:
             item.approved_variant_id = variant.id
+            selected += 1
+        elif item.source_path:
+            item.approved_source = True
             selected += 1
 
     ref_store.update_job(job)
@@ -1893,6 +2045,7 @@ def ref_get_variants(job_id: str):
             "source_site": it.source_site,
             "source_fetched_at": it.source_fetched_at,
             "approved_variant_id": it.approved_variant_id,
+            "approved_source": it.approved_source,
             "variants": [
                 {
                     "id": v.id,
@@ -1910,6 +2063,242 @@ def ref_get_variants(job_id: str):
     return {"items": items}
 
 
+def _interior_job_to_dict(job):
+    done, total = job.progress()
+    return {
+        "id": job.id,
+        "source_name": job.source_name,
+        "image_path": job.image_path,
+        "user_prompt": job.user_prompt,
+        "count": job.count,
+        "width": job.width,
+        "height": job.height,
+        "model_id": job.model_id,
+        "llm_provider": job.llm_provider,
+        "llm_model": job.llm_model,
+        "prompts_ready": job.prompts_ready,
+        "llm_error": job.llm_error,
+        "status": job.status,
+        "created_at": job.created_at,
+        "paused": job.paused,
+        "done": done,
+        "total": total,
+        "eta": job.eta_seconds(),
+        "variants": [
+            {
+                "id": v.id,
+                "prompt": v.prompt,
+                "status": v.status,
+                "filename": v.filename,
+                "error": v.error,
+                "elapsed": v.elapsed,
+                "seed": v.seed,
+            }
+            for v in job.variants
+        ],
+    }
+
+
+@app.post("/api/interior/jobs")
+async def interior_create(
+    file: UploadFile = File(...),
+    prompt: str = Form(...),
+    count: int = Form(4),
+    provider: str = Form("deepseek"),
+    model_name: str = Form(""),
+    size: str = Form("square"),
+):
+    text = (prompt or "").strip()
+    if not text:
+        raise HTTPException(400, "Введите описание интерьера")
+    content = await file.read()
+    if len(content) < 100:
+        raise HTTPException(400, "Файл пуст")
+    if len(content) > 30 * 1024 * 1024:
+        raise HTTPException(400, "Файл больше 30 МБ")
+    if provider not in ("deepseek", "ollama_cloud", "local"):
+        provider = "ollama_cloud"
+    count = max(1, min(8, int(count or 1)))
+    sizes = {"square": (1024, 1024), "4:3": (1152, 864), "16:9": (1344, 768)}
+    width, height = sizes.get(size, (1024, 1024))
+
+    from PIL import Image, ImageOps
+    import io as _io
+
+    job = None
+    try:
+        with Image.open(_io.BytesIO(content)) as im:
+            im = ImageOps.exif_transpose(im).convert("RGB")
+            w, h = im.size
+            if w < 64 or h < 64:
+                raise ValueError("слишком маленькое изображение")
+            job = InteriorJob(
+                source_name=file.filename or "interior",
+                image_path="",
+                user_prompt=text,
+                count=count,
+                width=width,
+                height=height,
+                llm_provider=provider,
+                llm_model=(model_name or "").strip(),
+            )
+            job.image_path = f"interior_uploads/{job.id}.png"
+            dest = config.OUTPUT_DIR / job.image_path
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            im.save(dest, "PNG")
+    except Exception as e:
+        raise HTTPException(400, f"Не удалось прочитать изображение: {e}")
+
+    interior_store.add_job(job)
+    interior_queue.submit_job(job)
+    return {
+        "id": job.id,
+        "count": job.count,
+        "width": width,
+        "height": height,
+        "image_path": job.image_path,
+    }
+
+
+@app.get("/api/interior/jobs")
+def interior_list_jobs():
+    out = []
+    for job in interior_store.list_jobs():
+        done, total = job.progress()
+        out.append({
+            "id": job.id,
+            "source_name": job.source_name,
+            "count": job.count,
+            "status": job.status,
+            "done": done,
+            "total": total,
+            "eta": job.eta_seconds(),
+            "paused": job.paused,
+            "created_at": job.created_at,
+            "prompts_ready": job.prompts_ready,
+            "llm_provider": job.llm_provider,
+            "llm_model": job.llm_model,
+        })
+    return out
+
+
+@app.get("/api/interior/jobs/{job_id}")
+def interior_get_job(job_id: str):
+    job = interior_store.get_job(job_id)
+    if job is None:
+        raise HTTPException(404, "Задача не найдена")
+    return _interior_job_to_dict(job)
+
+
+@app.get("/api/interior/jobs/{job_id}/progress")
+def interior_progress(job_id: str):
+    job = interior_store.get_job(job_id)
+    if job is None:
+        raise HTTPException(404, "Задача не найдена")
+    done, total = job.progress()
+    return {
+        "id": job.id,
+        "status": job.status,
+        "done": done,
+        "total": total,
+        "eta": job.eta_seconds(),
+        "paused": job.paused,
+        "prompts_ready": job.prompts_ready,
+        "llm_error": job.llm_error,
+    }
+
+
+@app.post("/api/interior/jobs/{job_id}/run")
+def interior_run(job_id: str):
+    job = interior_store.get_job(job_id)
+    if job is None:
+        raise HTTPException(404, "Задача не найдена")
+    interior_queue.submit_job(job)
+    return _interior_job_to_dict(job)
+
+
+@app.post("/api/interior/jobs/{job_id}/pause")
+def interior_pause(job_id: str):
+    if not interior_queue.pause_job(job_id):
+        raise HTTPException(404, "Задача не найдена")
+    return {"ok": True, "paused": True}
+
+
+@app.post("/api/interior/jobs/{job_id}/resume")
+def interior_resume(job_id: str):
+    if not interior_queue.resume_job(job_id):
+        raise HTTPException(404, "Задача не найдена")
+    return {"ok": True, "paused": False}
+
+
+@app.post("/api/interior/jobs/{job_id}/variants/{variant_id}/regenerate")
+def interior_regenerate(job_id: str, variant_id: str):
+    job = interior_store.get_job(job_id)
+    if job is None:
+        raise HTTPException(404, "Задача не найдена")
+    variant = next((v for v in job.variants if v.id == variant_id), None)
+    if variant is None:
+        raise HTTPException(404, "Вариант не найден")
+    variant.status = "pending"
+    variant.filename = None
+    variant.error = None
+    variant.elapsed = None
+    variant.seed = -1
+    job.status = "queued"
+    interior_store.update_job(job)
+    interior_queue.submit_job(job)
+    return _interior_job_to_dict(job)
+
+
+@app.get("/api/interior/jobs/{job_id}/zip")
+def interior_zip(job_id: str):
+    job = interior_store.get_job(job_id)
+    if job is None:
+        raise HTTPException(404, "Задача не найдена")
+    files = [
+        config.OUTPUT_DIR / v.filename
+        for v in job.variants
+        if v.filename and (config.OUTPUT_DIR / v.filename).exists()
+    ]
+    if not files:
+        raise HTTPException(404, "Нет готовых изображений")
+    import zipfile
+    from starlette.background import BackgroundTask
+
+    zip_path = config.OUTPUT_DIR / f"interior_{job.id}.zip"
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+        for p in files:
+            z.write(p, p.name)
+
+    def _cleanup():
+        try:
+            zip_path.unlink()
+        except OSError:
+            pass
+
+    return FileResponse(
+        zip_path,
+        filename=f"interior_{job.id}.zip",
+        background=BackgroundTask(_cleanup),
+    )
+
+
+@app.delete("/api/interior/jobs/{job_id}")
+def interior_delete(job_id: str):
+    job = interior_store.get_job(job_id)
+    if job is None:
+        raise HTTPException(404, "Задача не найдена")
+    import shutil
+    folder = config.OUTPUT_DIR / job.folder_name()
+    if folder.exists():
+        shutil.rmtree(folder, ignore_errors=True)
+    src = config.OUTPUT_DIR / job.image_path if job.image_path else None
+    if src is not None and src.exists():
+        src.unlink(missing_ok=True)
+    interior_store.delete_job(job_id)
+    return {"ok": True}
+
+
 def _ref_job_to_dict(job):
     done, total = job.progress()
     return {
@@ -1921,6 +2310,7 @@ def _ref_job_to_dict(job):
         "copies": job.copies,
         "strength": job.strength,
         "watermark": job.watermark,
+        "clean_mode": job.clean_mode,
         "overlay_path": job.overlay_path,
         "done": done,
         "total": total,
@@ -1942,6 +2332,7 @@ def _ref_job_to_dict(job):
                 "source_fetched_at": it.source_fetched_at,
                 "prompt": it.prompt,
                 "approved_variant_id": it.approved_variant_id,
+                "approved_source": it.approved_source,
                 "variants": [
                     {
                         "id": v.id,
@@ -1985,11 +2376,16 @@ def _start_ref_finalize(job_id: str):
 
     items = []
     for item in job.items:
+        if item.approved_source and item.source_path:
+            src = config.OUTPUT_DIR / item.source_path
+            if src.exists():
+                items.append((item, None, src))
+            continue
         if not item.approved_variant_id:
             continue
         variant = next((v for v in item.variants if v.id == item.approved_variant_id), None)
         if variant is not None and variant.filename:
-            items.append((item, variant))
+            items.append((item, variant, config.OUTPUT_DIR / variant.filename))
 
     total = len(items)
     status = {
@@ -1999,8 +2395,7 @@ def _start_ref_finalize(job_id: str):
     _ref_finalize_status[job_id] = status
 
     def worker():
-        for item, variant in items:
-            src = config.OUTPUT_DIR / variant.filename
+        for item, variant, src in items:
             name = item.output_name or item.item_id or item.id
 
             if src.exists():
@@ -2058,11 +2453,21 @@ def ref_delete_job(job_id: str):
     if job is None:
         raise HTTPException(404, "Задача не найдена")
 
+    ref_queue.cancel_job(job_id)
+
     import shutil
     job_folder = job.folder_name() or f"refjob_{job_id}"
     results_dir = config.OUTPUT_DIR / job_folder
     if results_dir.exists():
         shutil.rmtree(results_dir, ignore_errors=True)
+
+    # Кэш исходников удаляем, только если он больше не нужен другим задачам.
+    from store import slugify_source
+    source_slug = slugify_source(job.source_name)
+    source_dir = config.OUTPUT_DIR / "sources-png" / source_slug
+    other_jobs = [j for j in ref_store.list_jobs() if j.id != job_id and j.source_name == job.source_name]
+    if source_slug and source_dir.exists() and not other_jobs:
+        shutil.rmtree(source_dir, ignore_errors=True)
 
     _ref_finalize_status.pop(job_id, None)
 
@@ -2228,6 +2633,21 @@ def single_page(request: Request):
     return templates.TemplateResponse(request, "single.html", {"active": "single"})
 
 
+@app.get("/batch", response_class=HTMLResponse)
+def batch_page(request: Request):
+    return templates.TemplateResponse(request, "batch.html", {"active": "batch"})
+
+
+@app.get("/cars", response_class=HTMLResponse)
+def cars_page(request: Request):
+    return templates.TemplateResponse(request, "cars.html", {"active": "cars"})
+
+
+@app.get("/restyle", response_class=HTMLResponse)
+def restyle_page(request: Request):
+    return templates.TemplateResponse(request, "restyle.html", {"active": "restyle"})
+
+
 @app.post("/api/single/generate")
 def single_generate(body: dict):
     import threading as _threading
@@ -2254,6 +2674,11 @@ def single_generate(body: dict):
     resolution = body.get("resolution") or "2k"
     width, height = _parse_aspect_ratio(aspect_ratio, 1024, 2048)
     seed = body.get("seed")
+    try:
+        copies = int(body.get("copies", 1) or 1)
+    except (TypeError, ValueError):
+        copies = 1
+    copies = max(1, min(24, copies))
 
     def _label(mid):
         if mid in config.MODELS:
@@ -2267,9 +2692,12 @@ def single_generate(body: dict):
         "status": "running",
         "created_at": _time.time(),
         "saved": False,
+        "copies": copies,
         "models": [
-            {"model_id": m, "label": _label(m),
+            {"model_id": m, "label": _label(m) + (f" · {copy_index + 1}/{copies}" if copies > 1 else ""),
+             "copy_index": copy_index,
              "status": "pending", "filename": None, "error": None}
+            for copy_index in range(copies)
             for m in all_models
         ],
     }
@@ -2280,6 +2708,8 @@ def single_generate(body: dict):
         temp_dir.mkdir(parents=True, exist_ok=True)
         for m in job["models"]:
             model_id = m["model_id"]
+            copy_index = int(m.get("copy_index", 0))
+            suffix = f"_{copy_index + 1}" if job.get("copies", 1) > 1 else ""
             m["status"] = "running"
             try:
                 if model_id in nanobanana_client.NANOBANANA_MODELS:
@@ -2288,13 +2718,13 @@ def single_generate(body: dict):
                     if not urls:
                         raise RuntimeError("Nano Banana: пустой результат")
                     ext = ".jpeg" if urls[0].lower().endswith((".jpg", ".jpeg")) else ".png"
-                    out_path = temp_dir / f"{model_id}{ext}"
+                    out_path = temp_dir / f"{model_id}{suffix}{ext}"
                     nanobanana_client.download_image(urls[0], out_path)
                     m["filename"] = f"temp/{job_id}/{out_path.name}"
                     m["status"] = "done"
                 else:
                     info = config.MODELS[model_id]
-                    out_path = temp_dir / f"{model_id}.png"
+                    out_path = temp_dir / f"{model_id}{suffix}.png"
                     generator.generate(
                         prompt, model_id, width, height,
                         info["default_steps"], info.get("guidance_scale", 1.0), seed,
@@ -2350,6 +2780,611 @@ def single_save(job_id: str):
         saved.append(m["filename"])
     job["saved"] = True
     return {"ok": True, "saved": saved}
+
+
+
+# ─── «Тачки»: детейлинг-плёнка по фото или модели ───────────────────────────
+
+_car_jobs = {}
+_CARS_LOCAL_MODELS = ("flux2-klein-4b",)
+_CARS_JOBS_FILE = config.BASE_DIR / "cars_jobs.json"
+_cars_jobs_lock = threading.Lock()
+
+
+def _load_cars_jobs():
+    """Загрузить историю «Тачек» после перезапуска."""
+    if not _CARS_JOBS_FILE.exists():
+        return
+    try:
+        data = json.loads(_CARS_JOBS_FILE.read_text(encoding="utf-8"))
+        jobs = data.get("jobs", []) if isinstance(data, dict) else []
+        for job in jobs:
+            if not isinstance(job, dict) or not job.get("id"):
+                continue
+            for m in job.get("models", []):
+                if m.get("status") in ("running", "pending"):
+                    m["status"] = "error"
+                    m["error"] = m.get("error") or "Генерация прервана перезапуском сервера"
+            if job.get("status") == "running":
+                job["status"] = "error"
+                job["error"] = job.get("error") or "Генерация прервана перезапуском сервера"
+            _car_jobs[job["id"]] = job
+    except Exception as e:
+        print(f"[cars] Ошибка загрузки истории: {e}")
+
+
+def _save_cars_jobs():
+    """Атомарно сохранить историю «Тачек» в JSON."""
+    with _cars_jobs_lock:
+        try:
+            data = {"jobs": sorted(_car_jobs.values(), key=lambda j: j.get("created_at", 0), reverse=True)[:200]}
+            tmp = _CARS_JOBS_FILE.with_suffix(".json.tmp")
+            text = json.dumps(data, ensure_ascii=False, indent=2)
+            with open(tmp, "w", encoding="utf-8") as f:
+                f.write(text)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(str(tmp), str(_CARS_JOBS_FILE))
+        except Exception as e:
+            print(f"[cars] Ошибка сохранения истории: {e}")
+
+
+_load_cars_jobs()
+
+
+def _car_model_label(mid):
+    if mid in config.MODELS:
+        return config.MODELS[mid]["label"]
+    return nanobanana_client.NANOBANANA_MODELS[mid]["label"]
+
+
+def _cars_job_dict(job):
+    return {
+        "id": job["id"],
+        "source_mode": job["source_mode"],
+        "brand": job["brand"],
+        "model": job["model"],
+        "body_color": job["body_color"],
+        "finish": job["finish"],
+        "film_color": job["film_color"],
+        "anti_chrome": job["anti_chrome"],
+        "aspect_ratio": job["aspect_ratio"],
+        "resolution": job["resolution"],
+        "prompt": job.get("prompt", ""),
+        "status": job["status"],
+        "created_at": job["created_at"],
+        "source_filename": job.get("source_filename"),
+        "source_url": job.get("source_url"),
+        "source_public_url": job.get("source_public_url"),
+        "source_error": job.get("source_error"),
+        "error": job.get("error"),
+        "models": job["models"],
+    }
+
+
+def _car_worker(job):
+    try:
+        _car_worker_inner(job)
+    except Exception as e:
+        job["status"] = "error"
+        job["error"] = str(e)
+        _save_cars_jobs()
+        return
+    job["status"] = "done"
+    _save_cars_jobs()
+
+
+def _car_worker_inner(job):
+    source_file = job.get("source_filename")
+    if not source_file and job["source_mode"] == "model":
+        try:
+            name, url = cars_service.search_car_photo(
+                job["brand"], job["model"], job["body_color"])
+            if name:
+                source_file = name
+                job["source_filename"] = name
+                job["source_url"] = url
+                job["source_public_url"] = cars_service.public_url(name)
+                _save_cars_jobs()
+            else:
+                job["source_error"] = "Не удалось найти фотографию автомобиля — генерация без референса"
+        except Exception as e:
+            job["source_error"] = f"Поиск фото: {e}"
+        _save_cars_jobs()
+
+    job["prompt"] = cars_service.build_prompt(
+        job["brand"], job["model"], job["body_color"], job["finish"],
+        job["film_color"], job["anti_chrome"], has_reference=bool(source_file),
+    )
+
+    source_path = (cars_service.SOURCE_DIR / source_file) if source_file else None
+    public_url = cars_service.public_url(source_file) if source_file else None
+    job["source_public_url"] = public_url
+    _save_cars_jobs()
+    out_dir = cars_service.RESULT_DIR / job["id"]
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    width, height = _parse_aspect_ratio(job["aspect_ratio"], 1024, 1024)
+    threads = []
+    for m in job["models"]:
+        m["status"] = "running"
+        _save_cars_jobs()
+        t = threading.Thread(
+            target=_car_model_worker,
+            args=(job, m, source_path, public_url, width, height, out_dir),
+            daemon=True,
+        )
+        t.start()
+        threads.append(t)
+    for t in threads:
+        t.join()
+
+
+def _car_model_worker(job, m, source_path, public_url, width, height, out_dir):
+    """Сгенерировать один вариант. Модели запускаются параллельно."""
+    mid = m["model_id"]
+    try:
+        if mid in _CARS_LOCAL_MODELS:
+            info = config.MODELS[mid]
+            out_name = f"{mid}.png"
+            out_path = out_dir / out_name
+            generator.generate(
+                job["prompt"], mid, width, height,
+                info["default_steps"], info.get("guidance_scale", 1.0),
+                random.randint(0, 2**32 - 1), out_path,
+                reference_image=source_path,
+                reference_mode="multimodal" if source_path else "none",
+                strength=0.65,
+            )
+            m["filename"] = f"cars/{job['id']}/{out_name}"
+            m["status"] = "done"
+        else:
+            images = [public_url] if public_url else None
+
+            def _on_task(info, _m=m, _mid=mid):
+                _m["task_id"] = info.get("task_id")
+                _m["api_status"] = info.get("status")
+                if info.get("credits") is not None:
+                    _m["credits"] = info.get("credits")
+                print(f"[cars] {_mid} task={_m['task_id']} status={_m['api_status']}")
+                _save_cars_jobs()
+
+            urls, credits = nanobanana_client.generate(
+                mid, job["prompt"], images=images,
+                aspect_ratio=job["aspect_ratio"],
+                resolution=job["resolution"],
+                on_task=_on_task,
+            )
+            if not urls:
+                raise RuntimeError("Nano Banana: пустой результат")
+            url = urls[0]
+            from urllib.parse import urlparse
+            ext = Path(urlparse(url).path).suffix.lower()
+            if ext not in (".png", ".jpg", ".jpeg", ".webp"):
+                ext = ".png"
+            out_name = f"{mid}{ext}"
+            out_path = out_dir / out_name
+            if not nanobanana_client.download_image(url, out_path):
+                raise RuntimeError("Не удалось скачать результат")
+            m["filename"] = f"cars/{job['id']}/{out_name}"
+            m["credits"] = credits
+            m["status"] = "done"
+    except Exception as e:
+        m["status"] = "error"
+        m["error"] = str(e)
+    _save_cars_jobs()
+
+
+@app.get("/api/cars/catalog")
+def cars_catalog_api():
+    local = []
+    for mid, info in config.MODELS.items():
+        if info.get("video"):
+            continue
+        if mid not in _CARS_LOCAL_MODELS:
+            continue
+        local.append({"id": mid, "label": info["label"], "kind": "local",
+                      "available": bool(downloader.is_downloaded(mid))})
+    nb = []
+    for mid, info in nanobanana_client.NANOBANANA_MODELS.items():
+        nb.append({"id": mid, "label": info["label"], "kind": "nano",
+                   "credits": info.get("credits", {}),
+                   "available": bool(nanobanana_client.API_KEY)})
+    return {
+        "brands": cars_catalog.CAR_BRANDS,
+        "models": cars_catalog.CAR_MODELS,
+        "body_colors": cars_catalog.BODY_COLORS,
+        "film_colors": cars_catalog.FILM_COLORS,
+        "finishes": cars_catalog.FILM_FINISHES,
+        "anti_chrome": cars_catalog.ANTI_CHROME_OPTIONS,
+        "aspect_ratios": cars_catalog.ASPECT_RATIOS,
+        "local_models": local,
+        "nano_models": nb,
+        "has_nano_key": bool(nanobanana_client.API_KEY),
+    }
+
+
+@app.post("/api/cars/jobs")
+async def cars_create(
+    file: UploadFile = File(None),
+    source_mode: str = Form("upload"),
+    brand: str = Form(""),
+    model: str = Form(""),
+    body_color: str = Form("как на фото"),
+    finish: str = Form("matte"),
+    film_color: str = Form("в цвет кузова"),
+    anti_chrome: str = Form("none"),
+    aspect_ratio: str = Form("16:9"),
+    resolution: str = Form("2k"),
+    models: str = Form("[]"),
+):
+    source_mode = "model" if source_mode == "model" else "upload"
+    brand = (brand or "").strip()
+    model = (model or "").strip()
+    if source_mode == "model":
+        if not brand or not model:
+            raise HTTPException(400, "Выберите марку и модель автомобиля")
+        if brand not in cars_catalog.CAR_BRANDS or model not in cars_catalog.CAR_BRANDS[brand]:
+            raise HTTPException(400, "Неизвестная марка или модель автомобиля")
+    else:
+        if file is None:
+            raise HTTPException(400, "Загрузите фотографию автомобиля")
+
+    if body_color not in cars_catalog.BODY_COLORS:
+        body_color = "как на фото"
+    if film_color not in cars_catalog.FILM_COLORS:
+        film_color = "в цвет кузова"
+    if finish not in ("matte", "gloss"):
+        finish = "matte"
+    if anti_chrome not in ("none", "matte_black", "gloss_black"):
+        anti_chrome = "none"
+    if aspect_ratio not in cars_catalog.ASPECT_RATIOS:
+        aspect_ratio = "16:9"
+    if resolution not in ("1k", "2k", "4k"):
+        resolution = "2k"
+
+    try:
+        requested = json.loads(models) if isinstance(models, str) else (models or [])
+    except (ValueError, TypeError):
+        requested = []
+    if not isinstance(requested, list):
+        requested = []
+
+    selected = []
+    for mid in requested:
+        if mid in _CARS_LOCAL_MODELS and mid in config.MODELS:
+            selected.append(mid)
+        elif mid in nanobanana_client.NANOBANANA_MODELS and nanobanana_client.API_KEY:
+            selected.append(mid)
+    selected = list(dict.fromkeys(selected))
+    if not selected:
+        raise HTTPException(400, "Выберите хотя бы одну доступную модель")
+
+    cars_service.cleanup_sources()
+    job_id = uuid.uuid4().hex[:12]
+    source_filename = None
+    if source_mode == "upload":
+        try:
+            source_filename = cars_service.save_uploaded(await file.read())
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+
+    job = {
+        "id": job_id,
+        "source_mode": source_mode,
+        "brand": brand,
+        "model": model,
+        "body_color": body_color,
+        "finish": finish,
+        "film_color": film_color,
+        "anti_chrome": anti_chrome,
+        "aspect_ratio": aspect_ratio,
+        "resolution": resolution,
+        "status": "running",
+        "created_at": time.time(),
+        "source_filename": source_filename,
+        "source_url": None,
+        "source_public_url": cars_service.public_url(source_filename) if source_filename else None,
+        "source_error": None,
+        "prompt": cars_service.build_prompt(
+            brand, model, body_color, finish, film_color, anti_chrome,
+            has_reference=bool(source_filename),
+        ),
+        "models": [
+            {"model_id": mid, "label": _car_model_label(mid), "status": "pending",
+             "filename": None, "error": None, "credits": None,
+             "task_id": None, "api_status": None}
+            for mid in selected
+        ],
+    }
+    _car_jobs[job_id] = job
+    _save_cars_jobs()
+    threading.Thread(target=_car_worker, args=(job,), daemon=True).start()
+    return _cars_job_dict(job)
+
+
+@app.get("/api/cars/jobs/{job_id}")
+def cars_get(job_id: str):
+    job = _car_jobs.get(job_id)
+    if job is None:
+        raise HTTPException(404, "Задача не найдена")
+    return _cars_job_dict(job)
+
+
+@app.get("/api/cars/jobs")
+def cars_list():
+    jobs = sorted(_car_jobs.values(), key=lambda j: j.get("created_at", 0), reverse=True)
+    return [_cars_job_dict(j) for j in jobs[:100]]
+
+
+@app.delete("/api/cars/jobs/{job_id}")
+def cars_delete(job_id: str):
+    job = _car_jobs.pop(job_id, None)
+    if job is None:
+        raise HTTPException(404, "Задача не найдена")
+    import shutil
+    shutil.rmtree(cars_service.RESULT_DIR / job_id, ignore_errors=True)
+    if job.get("source_filename"):
+        (cars_service.SOURCE_DIR / job["source_filename"]).unlink(missing_ok=True)
+    _save_cars_jobs()
+    return {"ok": True}
+
+
+@app.get("/public/cars/{filename}")
+def public_car_source(filename: str):
+    path = cars_service.source_path(filename)
+    if path is None:
+        raise HTTPException(404, "Файл не найден")
+    return FileResponse(path)
+
+
+# ─── Фотореализация рендеров Deformix ───────────────────────────────────────
+
+_restyle_jobs = {}
+_RESTYLE_JOBS_FILE = config.BASE_DIR / "restyle_jobs.json"
+_restyle_jobs_lock = threading.Lock()
+_RESTYLE_MODEL = "flux2-klein-4b"
+
+
+def _load_restyle_jobs():
+    if not _RESTYLE_JOBS_FILE.exists():
+        return
+    try:
+        data = json.loads(_RESTYLE_JOBS_FILE.read_text(encoding="utf-8"))
+        for job in data.get("jobs", []) if isinstance(data, dict) else []:
+            if not isinstance(job, dict) or not job.get("id"):
+                continue
+            for v in job.get("variants", []):
+                if v.get("status") in ("pending", "running"):
+                    v["status"] = "error"
+                    v["error"] = v.get("error") or "Генерация прервана перезапуском сервера"
+            if job.get("status") == "running":
+                job["status"] = "error"
+                job["error"] = job.get("error") or "Генерация прервана перезапуском сервера"
+            _restyle_jobs[job["id"]] = job
+    except Exception as e:
+        print(f"[restyle] Ошибка загрузки истории: {e}")
+
+
+def _save_restyle_jobs():
+    with _restyle_jobs_lock:
+        try:
+            data = {"jobs": sorted(_restyle_jobs.values(), key=lambda j: j.get("created_at", 0), reverse=True)[:30]}
+            tmp = _RESTYLE_JOBS_FILE.with_suffix(".json.tmp")
+            text = json.dumps(data, ensure_ascii=False, indent=2)
+            with open(tmp, "w", encoding="utf-8") as f:
+                f.write(text)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(str(tmp), str(_RESTYLE_JOBS_FILE))
+        except Exception as e:
+            print(f"[restyle] Ошибка сохранения истории: {e}")
+
+
+_load_restyle_jobs()
+
+
+def _restyle_worker(job):
+    from PIL import Image
+
+    job["status"] = "running"
+    _save_restyle_jobs()
+    items = {it["slug"]: it for it in job["items"]}
+    out_root = restyle_service.OUTPUT_DIR / job["id"]
+    try:
+        for variant in job["variants"]:
+            item = items.get(variant["slug"])
+            variant["status"] = "running"
+            variant["error"] = None
+            _save_restyle_jobs()
+            start = time.time()
+            try:
+                if item is None:
+                    raise RuntimeError("Исходник не найден")
+                source = restyle_service.source_path(item)
+                if source is None:
+                    raise RuntimeError("Нет исходного файла на сервере")
+                width, height = restyle_service.output_size(item["kind"], source)
+                out_dir = out_root / item["kind"]
+                out_dir.mkdir(parents=True, exist_ok=True)
+                tmp = out_dir / f"{item['slug']}.png"
+                out_jpg = out_dir / f"{item['slug']}.jpg"
+                info = config.MODELS[_RESTYLE_MODEL]
+                generator.generate(
+                    job["prompt"], _RESTYLE_MODEL, width, height,
+                    info["default_steps"], info.get("guidance_scale", 1.0),
+                    variant.get("seed"), tmp,
+                    reference_image=source,
+                    reference_mode="img2img",
+                    strength=0.4,
+                )
+                with Image.open(tmp) as im:
+                    im.convert("RGB").save(out_jpg, "JPEG", quality=92, optimize=True, progressive=True)
+                tmp.unlink(missing_ok=True)
+                variant["filename"] = f"restyle/{job['id']}/{item['kind']}/{out_jpg.name}"
+                variant["status"] = "done"
+            except Exception as e:
+                variant["status"] = "error"
+                variant["error"] = str(e)
+            variant["elapsed"] = round(time.time() - start, 1)
+            _save_restyle_jobs()
+        job["status"] = "done"
+    except Exception as e:
+        job["status"] = "error"
+        job["error"] = str(e)
+    _save_restyle_jobs()
+
+
+def _restyle_public_item(item):
+    return {
+        "kind": item["kind"],
+        "slug": item["slug"],
+        "file": item["file"],
+        "designation": item["designation"],
+        "device": item["device"],
+        "cards_count": len(item.get("cards", [])),
+        "available": item["available"],
+    }
+
+
+@app.get("/api/restyle/catalog")
+def restyle_catalog_api():
+    cat = restyle_service.load_catalog()
+    return {
+        "summary": restyle_service.summary(),
+        "cut": [_restyle_public_item(x) for x in cat["cut"]],
+        "scene": [_restyle_public_item(x) for x in cat["scene"]],
+        "prompts": {
+            "cut": restyle_service.CUT_PROMPT,
+            "scene": restyle_service.SCENE_PROMPT,
+        },
+        "model": {"id": _RESTYLE_MODEL, "label": config.MODELS[_RESTYLE_MODEL]["label"]},
+    }
+
+
+@app.get("/api/restyle/source/{kind}/{slug}")
+def restyle_source_api(kind: str, slug: str):
+    item = restyle_service.get_item(kind, slug)
+    path = restyle_service.source_path(item) if item else None
+    if path is None:
+        raise HTTPException(404, "Исходник не найден")
+    return FileResponse(path, headers={"Cache-Control": "public, max-age=86400"})
+
+
+@app.post("/api/restyle/jobs")
+def restyle_create(body: dict):
+    kind = "scene" if body.get("kind") == "scene" else "cut"
+    slugs = body.get("slugs") or []
+    if not isinstance(slugs, list) or not slugs:
+        raise HTTPException(400, "Выберите хотя бы одно изображение")
+    if len(slugs) > 50:
+        raise HTTPException(400, "За один запуск — не более 50 изображений")
+
+    prompt = (body.get("prompt") or "").strip() or restyle_service.prompt_for(kind)
+    items, seen = [], set()
+    for raw in slugs:
+        slug = str(raw).strip()
+        if not slug or slug in seen:
+            continue
+        item = restyle_service.get_item(kind, slug)
+        if item is None:
+            continue
+        if not item.get("available"):
+            continue
+        seen.add(slug)
+        items.append(item)
+    if not items:
+        raise HTTPException(400, "Не удалось найти доступные исходники")
+
+    job_id = uuid.uuid4().hex[:12]
+    job = {
+        "id": job_id,
+        "kind": kind,
+        "prompt": prompt,
+        "status": "running",
+        "created_at": time.time(),
+        "error": None,
+        "items": items,
+        "variants": [
+            {
+                "id": uuid.uuid4().hex[:12],
+                "slug": item["slug"],
+                "kind": item["kind"],
+                "status": "pending",
+                "filename": None,
+                "error": None,
+                "elapsed": None,
+                "seed": random.randint(0, 2**32 - 1),
+            }
+            for item in items
+        ],
+    }
+    _restyle_jobs[job_id] = job
+    _save_restyle_jobs()
+    threading.Thread(target=_restyle_worker, args=(job,), daemon=True).start()
+    return job
+
+
+@app.get("/api/restyle/jobs/{job_id}")
+def restyle_get(job_id: str):
+    job = _restyle_jobs.get(job_id)
+    if job is None:
+        raise HTTPException(404, "Задача не найдена")
+    return job
+
+
+@app.get("/api/restyle/jobs")
+def restyle_list():
+    jobs = sorted(_restyle_jobs.values(), key=lambda j: j.get("created_at", 0), reverse=True)
+    return jobs[:30]
+
+
+@app.delete("/api/restyle/jobs/{job_id}")
+def restyle_delete(job_id: str):
+    job = _restyle_jobs.pop(job_id, None)
+    if job is None:
+        raise HTTPException(404, "Задача не найдена")
+    import shutil
+    shutil.rmtree(restyle_service.OUTPUT_DIR / job_id, ignore_errors=True)
+    _save_restyle_jobs()
+    return {"ok": True}
+
+
+@app.get("/api/restyle/jobs/{job_id}/zip")
+def restyle_zip(job_id: str):
+    import csv
+    import io as _io
+    import zipfile
+
+    job = _restyle_jobs.get(job_id)
+    if job is None:
+        raise HTTPException(404, "Задача не найдена")
+    out_dir = restyle_service.OUTPUT_DIR / job_id
+    zip_path = out_dir / "restyled.zip"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    done = {v["slug"]: v for v in job.get("variants", []) if v.get("status") == "done" and v.get("filename")}
+    manifest = _io.StringIO()
+    writer = csv.writer(manifest, delimiter=";")
+    writer.writerow(["slug", "файл", "обозначение", "device", "карточки"])
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+        for item in job.get("items", []):
+            v = done.get(item["slug"])
+            if not v:
+                continue
+            src = config.OUTPUT_DIR / v["filename"]
+            if not src.exists():
+                continue
+            zf.write(src, arcname=src.name)
+            writer.writerow([item["slug"], v["filename"], item.get("designation", ""),
+                             item.get("device", ""), ",".join(item.get("cards", []))])
+            for alias in item.get("aliases", []):
+                if not alias or alias == item["slug"]:
+                    continue
+                zf.write(src, arcname=alias + src.suffix)
+                writer.writerow([alias, v["filename"], item.get("designation", ""),
+                                 item.get("device", ""), ",".join(item.get("cards", []))])
+        zf.writestr("manifest.csv", manifest.getvalue())
+    return FileResponse(zip_path, filename=f"restyle_{job_id}.zip", media_type="application/zip")
 
 
 # ─── Upscale (повышение чёткости картинки) ────────────────────────────────
@@ -2916,6 +3951,89 @@ def _resolve_path(rel):
     return target
 
 
+_folder_size_cache = {}
+_FOLDER_SIZE_TTL = 60
+
+
+def _folder_size_py(path):
+    """Суммарный размер папки (рекурсивно) на чистом Python (fallback)."""
+    total = 0
+    stack = [path]
+    while stack:
+        current = stack.pop()
+        try:
+            with os.scandir(current) as it:
+                for entry in it:
+                    try:
+                        if entry.is_dir(follow_symlinks=False):
+                            stack.append(entry.path)
+                        elif entry.is_file(follow_symlinks=False):
+                            total += entry.stat(follow_symlinks=False).st_size
+                    except OSError:
+                        pass
+        except OSError:
+            pass
+    return total
+
+
+def _folder_size(path):
+    """Суммарный размер папки, с коротким кэшем."""
+    return _folder_sizes([path]).get(str(path), 0)
+
+
+def _folder_sizes(paths):
+    """Размеры нескольких папок одним проходом du (на Linux), с кэшем.
+
+    На больших каталогах os.scandir по каждой папке слишком медленный,
+    поэтому используем системный du; на Windows — Python-fallback.
+    """
+    import shutil
+    import subprocess
+
+    now = time.time()
+    result = {}
+    missing = []
+    for path in paths:
+        key = str(path)
+        cached = _folder_size_cache.get(key)
+        if cached and now - cached[0] < _FOLDER_SIZE_TTL:
+            result[key] = cached[1]
+        else:
+            missing.append(path)
+
+    if missing:
+        if shutil.which("du"):
+            # Не раздуваем длину командной строки для каталогов с тысячами подпапок.
+            for i in range(0, len(missing), 500):
+                chunk = missing[i:i + 500]
+                try:
+                    proc = subprocess.run(
+                        ["du", "-sb", "--", *[str(p) for p in chunk]],
+                        capture_output=True, text=True, timeout=60,
+                    )
+                    for line in proc.stdout.splitlines():
+                        size_s, sep, path_s = line.partition("\t")
+                        if not sep:
+                            continue
+                        try:
+                            result[path_s] = int(size_s)
+                        except ValueError:
+                            continue
+                except Exception:
+                    pass
+
+        for path in missing:
+            key = str(path)
+            if key not in result:
+                result[key] = _folder_size_py(path)
+            _folder_size_cache[key] = (now, result[key])
+
+    # Не даём кэшу расти бесконечно при обходе больших каталогов.
+    if len(_folder_size_cache) > 20000:
+        _folder_size_cache.clear()
+    return result
+
+
 @app.get("/api/files")
 def list_files(path: str = ""):
     """Список папок и файлов в указанной директории OUTPUT_DIR."""
@@ -2923,14 +4041,19 @@ def list_files(path: str = ""):
     if not target.is_dir():
         raise HTTPException(404, "Папка не найдена")
 
+    children = list(target.iterdir())
+    dirs = [p for p in children if p.is_dir()]
+    sizes = _folder_sizes(dirs)
+
     entries = []
-    for p in sorted(target.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower())):
+    for p in sorted(children, key=lambda x: (not x.is_dir(), x.name.lower())):
         try:
             stat = p.stat()
+            is_dir = p.is_dir()
             entries.append({
                 "name": p.name,
-                "is_dir": p.is_dir(),
-                "size": stat.st_size if p.is_file() else None,
+                "is_dir": is_dir,
+                "size": sizes.get(str(p), 0) if is_dir else stat.st_size,
                 "mtime": stat.st_mtime,
             })
         except OSError:
@@ -2985,6 +4108,8 @@ def delete_path(path: str):
     else:
         raise HTTPException(404, "Путь не найден")
 
+    # Размеры родительских папок изменились — сбрасываем кэш.
+    _folder_size_cache.clear()
     return {"ok": True}
 
 

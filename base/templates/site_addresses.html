@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Адреса{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <div class="text-secondary mb-1"><a href="{{ prefix }}/sites">&larr; Сайты</a></div>
+      <h2 class="page-title">Адреса</h2>
+      <div class="text-secondary mt-1">Адреса офисов, складов и площадок, привязанные к сайтам</div>
+    </div>
+    <div class="col-auto ms-auto d-print-none">
+      <div class="btn-list">
+        <a href="{{ prefix }}/sites/legal-entities" class="btn btn-outline-secondary">Юрлица</a>
+        <a href="{{ prefix }}/sites/managers" class="btn btn-outline-secondary">Менеджеры</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form class="card mb-3" id="addrForm">
+  <div class="card-header"><h3 class="card-title">Добавить адрес</h3></div>
+  <div class="card-body">
+    <div class="row g-3">
+      <div class="col-md-3">
+        <label class="form-label">Метка</label>
+        <input type="text" class="form-control" name="label" placeholder="Склад, офис, площадка">
+      </div>
+      <div class="col-md-5">
+        <label class="form-label">Полный адрес *</label>
+        <input type="text" class="form-control" name="full_address" required placeholder="125424, Москва, ...">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Город</label>
+        <input type="text" class="form-control" name="city">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Регион</label>
+        <input type="text" class="form-control" name="region">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Индекс</label>
+        <input type="text" class="form-control" name="postal_code">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Широта</label>
+        <input type="text" class="form-control" name="lat">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Долгота</label>
+        <input type="text" class="form-control" name="lon">
+      </div>
+      <div class="col-md-2 d-flex align-items-end">
+        <label class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" name="is_active" checked>
+          <span class="form-check-label">Активен</span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer d-flex align-items-center">
+    <span class="text-secondary small" id="addrStatus"></span>
+    <button type="submit" class="btn btn-primary ms-auto">Добавить</button>
+  </div>
+</form>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th>Метка</th>
+          <th>Адрес</th>
+          <th>Город</th>
+          <th>Регион</th>
+          <th>Индекс</th>
+          <th>Координаты</th>
+          <th>Сайты</th>
+          <th>Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="text-secondary">{{ r.label or '—' }}</td>
+          <td>{{ r.full_address }}</td>
+          <td>{{ r.city or '—' }}</td>
+          <td class="text-secondary">{{ r.region or '—' }}</td>
+          <td class="text-secondary">{{ r.postal_code or '—' }}</td>
+          <td class="text-secondary text-nowrap">
+            {% if r.lat is not none and r.lon is not none %}{{ r.lat }}, {{ r.lon }}{% else %}—{% endif %}
+          </td>
+          <td>
+            {% if r.sites_count %}
+              <span class="badge bg-blue-lt">{{ r.sites_count }}</span>
+              <span class="text-secondary small">{{ r.site_names }}</span>
+            {% else %}<span class="text-secondary">—</span>{% endif %}
+          </td>
+          <td>
+            {% if r.is_active %}<span class="badge bg-green-lt">активен</span>
+            {% else %}<span class="badge bg-secondary-lt">неактивен</span>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="8" class="text-secondary text-center py-4">Пока нет адресов</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById('addrForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const body = {
+      label: fd.get('label'),
+      full_address: fd.get('full_address'),
+      city: fd.get('city'),
+      region: fd.get('region'),
+      postal_code: fd.get('postal_code'),
+      lat: fd.get('lat'),
+      lon: fd.get('lon'),
+      is_active: form.querySelector('[name=is_active]').checked,
+    };
+    const st = document.getElementById('addrStatus');
+    st.textContent = 'Сохраняю…';
+    try {
+      const res = await fetch('{{ prefix }}/api/addresses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || ('HTTP ' + res.status));
+      location.reload();
+    } catch (err) {
+      st.textContent = 'Ошибка: ' + err.message;
+    }
+  });
+</script>
+{% endblock %}

@@ -61,13 +61,13 @@ def peak_windows_local(offset_hours=3):
     return [(s + offset_hours, e + offset_hours) for s, e in PEAK_WINDOWS_UTC]
 
 
-def _post_chat(messages, max_tokens=4000, temperature=0.7):
+def _post_chat(messages, max_tokens=4000, temperature=0.7, model_name=None):
     """Запрос к DeepSeek chat completions."""
     if not DEEPSEEK_TOKEN:
         raise RuntimeError("Не задан API-ключ DeepSeek (файл deepseek_token.txt)")
 
     body = json.dumps({
-        "model": "deepseek-v4-flash",
+        "model": model_name or "deepseek-v4-flash",
         "messages": messages,
         "max_tokens": max_tokens,
         "temperature": temperature,
@@ -99,10 +99,10 @@ def _strip_markdown(text):
     return text.strip()
 
 
-def _post_chat_local(messages, max_tokens=4000, temperature=0.7):
+def _post_chat_local(messages, max_tokens=4000, temperature=0.7, model_name=None):
     """Запрос к локальной модели через Ollama."""
     body = json.dumps({
-        "model": OLLAMA_MODEL,
+        "model": model_name or OLLAMA_MODEL,
         "messages": messages,
         "stream": False,
         "options": {
@@ -121,13 +121,13 @@ def _post_chat_local(messages, max_tokens=4000, temperature=0.7):
     return data["message"]["content"]
 
 
-def _post_chat_ollama_cloud(messages, max_tokens=4000, temperature=0.7):
+def _post_chat_ollama_cloud(messages, max_tokens=4000, temperature=0.7, model_name=None):
     """Запрос к Ollama Cloud (подписка) напрямую через API ollama.com."""
     if not OLLAMA_CLOUD_TOKEN:
         raise RuntimeError("Не задан API-ключ Ollama Cloud (файл ollama_token.txt)")
 
     body = json.dumps({
-        "model": OLLAMA_CLOUD_MODEL,
+        "model": model_name or OLLAMA_CLOUD_MODEL,
         "messages": messages,
         "stream": False,
         "think": False,
@@ -150,13 +150,21 @@ def _post_chat_ollama_cloud(messages, max_tokens=4000, temperature=0.7):
     return data["message"]["content"]
 
 
-def _chat(messages, max_tokens=4000, temperature=0.7, model="deepseek"):
+def _chat(messages, max_tokens=4000, temperature=0.7, model="deepseek", model_name=None):
     """Выбор провайдера: deepseek (API), local (Ollama) или ollama_cloud."""
     if model == "local":
-        return _post_chat_local(messages, max_tokens, temperature)
+        return _post_chat_local(messages, max_tokens, temperature, model_name)
     if model == "ollama_cloud":
-        return _post_chat_ollama_cloud(messages, max_tokens, temperature)
-    return _post_chat(messages, max_tokens, temperature)
+        return _post_chat_ollama_cloud(messages, max_tokens, temperature, model_name)
+    return _post_chat(messages, max_tokens, temperature, model_name)
+
+
+def default_model(provider):
+    if provider == "local":
+        return OLLAMA_MODEL
+    if provider == "ollama_cloud":
+        return OLLAMA_CLOUD_MODEL
+    return "deepseek-v4-flash"
 
 
 # ─── Поиск DuckDuckGo ─────────────────────────────────────────────────────────
@@ -328,3 +336,53 @@ def generate_description(title, excerpt=None, content=None, model="deepseek"):
     # Ограничиваем длину по границе предложения (не обрываем на полуслове)
     new_excerpt = _truncate_excerpt(new_excerpt)
     return new_excerpt, new_content
+
+
+INTERIOR_PROMPT_SYSTEM = (
+    "Ты — арт-директор и специалист по визуализации интерьеров. "
+    "Пользователь прикладывает фотографию интерьера и описывает, что хочет изменить или добавить. "
+    "Твоя задача — составить {count} разных детальных промптов для генеративной модели FLUX.2 Klein, "
+    "которая получает фото-референс и текстовый промпт. "
+    "Каждый промпт должен сохранять геометрию помещения, ракурс, освещение и общую композицию референса, "
+    "но предлагать СВОЙ вариант запрошенного изменения (материалы, цвета, формы, расстановка, свет, стиль). "
+    "Пиши на русском языке, конкретно и наглядно. Каждый промпт — 1–2 предложения, "
+    "самодостаточный, без нумерации и без слов «вариант 1» в начале. "
+    "Не добавляй в изображение надписи, логотипы и водяные знаки. "
+    "Верни СТРОГО JSON без markdown: {{\"prompts\": [\"...\", ...]}} — ровно {count} строк."
+)
+
+
+def generate_interior_prompts(user_prompt, count, provider="ollama_cloud", model_name=None):
+    """Разложить запрос пользователя на count разных промптов для Klein."""
+    count = max(1, min(8, int(count)))
+    system = INTERIOR_PROMPT_SYSTEM.format(count=count)
+    user = (
+        f"Запрос пользователя:\n{(user_prompt or '').strip()}\n\n"
+        f"Составь ровно {count} разных промптов. Верни только JSON."
+    )
+    raw = _chat(
+        [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        max_tokens=2500,
+        temperature=0.85,
+        model=provider,
+        model_name=model_name or None,
+    )
+    text = _strip_markdown(raw)
+    data = None
+    try:
+        data = json.loads(text)
+    except Exception:
+        m = re.search(r"\{.*\}", text, re.S)
+        if m:
+            try:
+                data = json.loads(m.group(0))
+            except Exception:
+                data = None
+    prompts = []
+    if isinstance(data, dict):
+        raw_prompts = data.get("prompts") or data.get("variants") or []
+        if isinstance(raw_prompts, list):
+            prompts = [str(p).strip() for p in raw_prompts if str(p).strip()]
+    if not prompts:
+        raise RuntimeError("LLM не вернула список промптов")
+    return prompts[:count]

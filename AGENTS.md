@@ -126,14 +126,20 @@ text-to-image + редактирование (до 10 референсов) + bo
 | `/video` | генерация видео (длительность/разрешение/fps/steps/негативный промпт) |
 | `/upscale` | апскейл картинки (img2img/multimodal) |
 | `/ref/...` | генерация по референсам (multimodal klein) |
+| `/interior` | визуализация интерьера: фото + запрос → LLM раскладывает на N промптов → N вариантов klein multimodal |
 | `/thumbs` | миниатюры категорий WooCommerce |
 | `/publish/{id}` | публикация на WordPress/WooCommerce |
 | `/files` | файловый менеджер |
 | `/llm` | генерация текстов (DeepSeek/Ollama/Ollama Cloud) |
 
 Ключевые API: `/api/models`, `/api/nanobanana/models`, `/api/single/*`,
-`/api/video/*`, `/api/upscale/*`, `/api/ref/*`, `/api/llm/*`, `/api/publish/*`,
-`/api/jobs/*` (вкл. `/api/jobs/{id}/zip` — скачать WEBP архивом).
+`/api/video/*`, `/api/upscale/*`, `/api/ref/*`, `/api/interior/*`, `/api/llm/*`,
+`/api/publish/*`, `/api/jobs/*` (вкл. `/api/jobs/{id}/zip` — скачать WEBP архивом).
+Интерьер: `POST /api/interior/jobs` (multipart: file, prompt, count, provider,
+model_name, size), `GET /api/interior/jobs/{id}` (статус + варианты),
+`.../zip`. LLM по умолчанию DeepSeek (`deepseek-v4-flash`); локальный Ollama
+(`qwen3:14b`) — CPU и медленно; Ollama Cloud API сейчас отвечает 410 Gone.
+Если LLM не ответила — используются шаблонные промпты.
 
 ## Модули
 
@@ -144,13 +150,14 @@ comfy_client.py    — клиент ComfyUI (submit_workflow/wait_for_result; wo
                      flux2/krea2/ideogram4/wan2.1/ltxv)
 task_queue.py      — очередь картинок (выгрузка при смене модели, логотип-референс)
 ref_store.py/ref_queue.py — генерация по референсам
+interior_store.py/interior_queue.py — визуализация интерьера (LLM-промпты + klein multimodal)
 thumb_store.py/thumb_worker.py — миниатюры категорий WooCommerce
 nanobanana_client.py — внешний API Nano Banana (15 image-моделей, кредиты)
 image_search.py    — поиск картинок DuckDuckGo (референсы)
 llm_client.py      — DeepSeek/Ollama/Ollama Cloud + DuckDuckGo
 llm_queue.py       — очередь LLM (deepseek блокируется в peak-time)
 wp_publish.py      — публикация WP/WooCommerce (translit/slugify/parse_image_name)
-store.py/llm_store.py/ref_store.py — персистентность (JSON, атомарная fsync)
+store.py/llm_store.py/ref_store.py/interior_store.py — персистентность (JSON, атомарная fsync)
 stats_monitor.py/stats_report.py — сбор/отчёт по CPU/GPU/RAM/VRAM
 downloader.py      — загрузка моделей (HF)
 static/            — веб-интерфейс
@@ -263,17 +270,17 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
 - **Портал:** 95 slug'ов поставщиков заменены на Amalor + 301-редиректы
   (`apps/database/slug_redirects.py`); бэкапы/скрипты —
   `/home/enix_admin/ops/supplier-slug-amalor-20261027/`.
-- **Эмбеддинги Amalor (106 928 × 1024) — отложены:** 515 МБ gz, лимит 5 Мбит/с в
-  будни 07–19. Файл: `/tmp/amalor_vectors.csv.gz` на office-сервере; импорт —
-  `products.embedding` (колонка/индекс готовы). Вечером (после 19:00): перенести
-  на flux в `/tmp/`, `gunzip`, затем `base/import_vectors.sql` (staging →
-  `UPDATE products.embedding` → HNSW).
+- **Эмбеддинги Amalor (106 928 × 1024) — импортированы 2026-10-29:** gz 515 527 266
+  байт перенесён на flux (`/tmp/amalor_vectors.csv.gz`, md5 `eafd97fc…`), распакован
+  (1.3 ГБ, 106 929 строк с заголовком) и залит `base/import_vectors.sql`:
+  COPY/UPDATE 106 928, HNSW пересобран (~4м44с). 32 товара без вектора.
+  Файлы `/tmp/amalor_vectors.csv[.gz]` можно удалить для экономии диска.
 
 ### Дальше (Phase 2+)
-- Перенести эмбеддинги после 19:00/выходных и залить в `products.embedding`.
-- Импортировать связи портала (17 948 «поставщик↔товар», 17 220 названий) →
-  матчинг названий портала к товарам Amalor (exact/trgm/вектор/LLM) →
-  `supplier_products`; спорные — вручную.
+- Эмбеддинги залиты (106 928; HNSW). Матчинг портала выполнен 2026-10-29:
+  17 948 связей → 5 389 matched (exact 687, trgm 1 739, vector gemma-2 2 963);
+  `supplier_products` +4 023 (всего 107 046); 12 558 на ревью (`portal_matching`,
+  кандидаты), 1 без пары. Дальше: ревью (UI/LLM), price_history.
 - Импортировать `price_history` Amalor (212 726) — история цен.
 - Загрузка прайсов CSV/XLSX/PDF/OCR, матчинг, ревью-очередь, `mapping_memory`.
 - Сайты: WooCommerce REST (stekltkani.ru, promtexizol.ru), затем WP-плагин

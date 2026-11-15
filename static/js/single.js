@@ -92,12 +92,15 @@
   }
 
   $('btnCreate').addEventListener('click', async () => {
+    const createLabel = $('btnCreate').textContent;
     const prompt = $('prompt').value.trim();
     if (!prompt) { alert('Введите промпт'); return; }
     const models = [...document.querySelectorAll('input[name=model]:checked')].map(c => c.value);
     if (!models.length) { alert('Выберите хотя бы одну модель'); return; }
     const aspect = $('aspect').value;
     const resolution = $('resolution').value;
+    const copiesInput = $('copies');
+    const copies = copiesInput ? Math.max(1, Math.min(24, parseInt(copiesInput.value) || 1)) : 1;
 
     $('btnCreate').disabled = true;
     $('btnCreate').textContent = 'Генерация…';
@@ -107,11 +110,11 @@
     const res = await fetch('/api/single/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, models, aspect_ratio: aspect, resolution }),
+      body: JSON.stringify({ prompt, models, aspect_ratio: aspect, resolution, copies }),
     });
     if (!res.ok) {
       $('btnCreate').disabled = false;
-      $('btnCreate').textContent = 'Создать изображение';
+      $('btnCreate').textContent = createLabel;
       alert('Ошибка: ' + (await res.text()));
       return;
     }
@@ -127,7 +130,7 @@
         if (job.status === 'done') {
           clearInterval(pollTimer);
           $('btnCreate').disabled = false;
-          $('btnCreate').textContent = 'Создать изображение';
+          $('btnCreate').textContent = createLabel;
         }
       } catch (e) {}
     }, 2000);

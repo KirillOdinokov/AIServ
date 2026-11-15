@@ -1,0 +1,83 @@
+﻿{% extends "base.html" %}
+{% block title %}AI ENIX — {{ server }}{% endblock %}
+{% block head %}
+<script src="/static/vendor/apexcharts/apexcharts.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title" id="serverTitle">{{ server }}</h2>
+      <div class="text-secondary mt-1" id="serverSubtitle">История загрузки</div>
+    </div>
+    <div class="col-auto ms-auto d-flex align-items-center gap-2">
+      <div class="btn-group btn-group-sm" id="periodGroup">
+        <button class="btn btn-outline-secondary" data-period="hour">Час</button>
+        <button class="btn btn-outline-secondary active" data-period="day">День</button>
+        <button class="btn btn-outline-secondary" data-period="week">Неделя</button>
+        <button class="btn btn-outline-secondary" data-period="month">Месяц</button>
+      </div>
+      <a href="/servers" class="btn btn-sm btn-outline-secondary">← Все серверы</a>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="text-secondary small" id="serverInfo">Загрузка…</div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header">
+    <h3 class="card-title">CPU</h3>
+    <div class="card-actions d-flex align-items-center gap-3">
+      <label class="form-check form-check-inline m-0">
+        <input class="form-check-input" type="checkbox" id="toggleCores" checked>
+        <span class="form-check-label">CPU по ядрам</span>
+      </label>
+    </div>
+  </div>
+  <div class="card-body"><div id="chartCpu"></div></div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-12 col-xl-6">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">RAM</h3></div>
+      <div class="card-body"><div id="chartRam"></div></div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-6">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Диски</h3></div>
+      <div class="card-body"><div id="chartDisk"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-12 col-xl-6">
+    <div class="card" id="cardCpuTemp">
+      <div class="card-header"><h3 class="card-title">Температура CPU</h3></div>
+      <div class="card-body"><div id="chartCpuTemp"></div></div>
+    </div>
+  </div>
+  <div class="col-12 col-xl-6">
+    <div class="card" id="cardGpuTemp">
+      <div class="card-header"><h3 class="card-title">Температура GPU</h3></div>
+      <div class="card-body"><div id="chartGpuTemp"></div></div>
+    </div>
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-header"><h3 class="card-title">Сеть</h3></div>
+  <div class="card-body"><div id="chartNet"></div></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/server_detail.js?v=6"></script>
+{% endblock %}

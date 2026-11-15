@@ -256,10 +256,13 @@ class Store:
         with self._lock:
             return sorted(self._jobs.values(), key=lambda j: j.created_at, reverse=True)
 
-    def update_job(self, job):
+    def update_job(self, job, only_existing=False):
         with self._lock:
+            if only_existing and job.id not in self._jobs:
+                return False
             self._jobs[job.id] = job
             self._save()
+            return True
 
     def delete_job(self, job_id):
         with self._lock:

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX — Тачки{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Тачки — примерка плёнки</h2>
+      <div class="text-secondary mt-1">Загрузите фото автомобиля или выберите модель — покажем его в детейлинг-центре в матовой или глянцевой плёнке.</div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Автомобиль</h3></div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label">Откуда взять автомобиль</label>
+          <div class="d-flex gap-3">
+            <label class="form-check">
+              <input class="form-check-input" type="radio" name="sourceMode" value="upload" checked>
+              <span class="form-check-label">Загрузить своё фото</span>
+            </label>
+            <label class="form-check">
+              <input class="form-check-input" type="radio" name="sourceMode" value="model">
+              <span class="form-check-label">Выбрать модель</span>
+            </label>
+          </div>
+        </div>
+
+        <div id="uploadPanel" class="mb-3">
+          <label class="form-label" for="carFile">Фото автомобиля</label>
+          <input type="file" id="carFile" class="form-control" accept=".png,.jpg,.jpeg,.webp">
+          <div class="form-hint">Лучше всего работает фото целиком, сбоку или 3/4, при дневном свете.</div>
+          <img id="uploadPreview" src="" alt="" class="img-fluid rounded mt-2" style="display:none;max-height:240px;">
+        </div>
+
+        <div id="modelPanel" class="mb-3" style="display:none">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="carBrand">Марка</label>
+              <select id="carBrand" class="form-select"></select>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="form-label" for="carModel">Модель</label>
+              <select id="carModel" class="form-select"></select>
+            </div>
+          </div>
+          <div class="form-hint" id="carsHint">Фото автомобиля найдём в DuckDuckGo автоматически.</div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="bodyColor">Цвет кузова</label>
+            <select id="bodyColor" class="form-select"></select>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label" for="aspectRatio">Кадр</label>
+            <select id="aspectRatio" class="form-select">
+              <option value="16:9" selected>16:9 — как в каталоге</option>
+              <option value="4:3">4:3</option>
+              <option value="3:2">3:2</option>
+              <option value="1:1">1:1</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><h3 class="card-title">Плёнка и антихром</h3></div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Тип плёнки</label>
+            <select id="carFinish" class="form-select">
+              <option value="matte" selected>Матовая</option>
+              <option value="gloss">Глянцевая</option>
+            </select>
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Цвет плёнки</label>
+            <select id="filmColor" class="form-select"></select>
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Антихром</label>
+            <select id="antiChrome" class="form-select"></select>
+          </div>
+        </div>
+        <div class="form-hint">«В цвет кузова» сохраняет исходный цвет автомобиля, меняя только фактуру плёнки.</div>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><h3 class="card-title">На каких моделях проверить</h3></div>
+      <div class="card-body">
+        <div id="carModelOptions" class="d-flex flex-wrap gap-3"></div>
+        <p class="text-secondary mt-2 mb-0" id="carCreditsHint"></p>
+        <button id="btnCarRun" class="btn btn-primary mt-3">Сделать примерку</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-header"><h3 class="card-title">Как это работает</h3></div>
+      <div class="card-body text-secondary">
+        <p>1. Выбираете своё фото или популярную модель автомобиля.</p>
+        <p>2. Для выбранной модели ищем фотографию в DuckDuckGo и берём её как референс.</p>
+        <p>3. Нейросеть сохраняет сам автомобиль и меняет только покрытие: матовая или глянцевая плёнка, при необходимости — антихром.</p>
+        <p class="mb-0">Можно сравнить FLUX.2 Klein и модели Nano Banana в одном запуске. Стоимость внешних моделей показана в кредитах.</p>
+      </div>
+    </div>
+    <div class="card mt-3">
+      <div class="card-header"><h3 class="card-title">Исходник</h3></div>
+      <div class="card-body">
+        <div id="sourcePreview" class="text-secondary">Фото появится здесь после запуска.</div>
+        <div class="text-secondary small mt-2" id="sourceNote"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-3" id="carResultsCard" style="display:none">
+  <div class="card-header">
+    <h3 class="card-title">Результаты</h3>
+    <div class="card-actions"><span id="carJobStatus" class="text-secondary"></span></div>
+  </div>
+  <div class="card-body">
+    <p class="text-secondary" id="carPrompt" style="white-space:pre-wrap;"></p>
+    <div class="row row-cards" id="carResults"></div>
+  </div>
+</div>
+
+<div class="card mt-3" id="carHistoryCard">
+  <div class="card-header">
+    <h3 class="card-title">История генераций</h3>
+    <div class="card-actions">
+      <button class="btn btn-sm btn-outline-secondary" id="btnCarHistoryRefresh"><i class="ti ti-refresh"></i> Обновить</button>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr><th>Дата</th><th>Автомобиль</th><th>Плёнка</th><th>Антихром</th><th>Статус</th><th class="w-1"></th></tr>
+      </thead>
+      <tbody id="carHistoryBody"></tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/cars.js?v=2"></script>
+{% endblock %}

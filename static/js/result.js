@@ -4,17 +4,28 @@
 
   const STATUS_LABELS = {
     draft: 'Черновик', queued: 'В очереди', running: 'Генерация',
-    done: 'Сгенерировано', error: 'Ошибка',
+    done: 'Сгенерировано', error: 'Ошибка', stopped: 'Остановлено',
   };
   const STATUS_BADGE = {
     draft: 'bg-secondary-lt', queued: 'bg-yellow-lt', running: 'bg-blue-lt',
-    done: 'bg-green-lt', error: 'bg-red-lt',
+    done: 'bg-green-lt', error: 'bg-red-lt', stopped: 'bg-orange-lt',
   };
 
   let currentJob = null;
   let itemCache = {};
   let lightboxImages = [];
   let lightboxIndex = 0;
+
+  const lazyObserver = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      if (e.isIntersecting) {
+        const img = e.target;
+        img.src = img.dataset.src;
+        img.removeAttribute('data-src');
+        lazyObserver.unobserve(img);
+      }
+    }
+  }, { rootMargin: '400px 0px' });
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -30,6 +41,56 @@
     return h + 'ч ' + mm + 'м';
   }
 
+  function renderActions(job) {
+    const active = job.status === 'running' || job.status === 'queued';
+    const canStart = job.paused || job.status === 'stopped' ||
+      (job.status === 'draft' && (job.models || []).length > 0);
+    let html = '<div class="btn-list flex-nowrap">';
+    if (canStart) {
+      html += '<button class="btn btn-sm btn-success" data-job-action="resume"><i class="ti ti-player-play"></i> Старт</button>';
+    } else if (active) {
+      html += '<button class="btn btn-sm btn-outline-secondary" data-job-action="pause"><i class="ti ti-player-pause"></i> Пауза</button>';
+    }
+    if (active || job.paused) {
+      html += '<button class="btn btn-sm btn-outline-danger" data-job-action="stop"><i class="ti ti-player-stop"></i> Стоп</button>';
+    }
+    html += '</div>';
+    $('jobActions').innerHTML = html;
+  }
+
+  $('jobActions').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-job-action]');
+    if (!btn) return;
+    const action = btn.dataset.jobAction;
+    if (action === 'stop' && !confirm('Остановить задачу? Текущая генерация будет прервана.')) return;
+    btn.disabled = true;
+    try {
+      if (action === 'pause') {
+        currentJob.paused = true;
+        currentJob.status = 'queued';
+        renderActions(currentJob);
+        renderJobHeader(currentJob);
+        await fetch('/api/jobs/' + jobId + '/pause', { method: 'POST' });
+      } else if (action === 'resume') {
+        currentJob.paused = false;
+        currentJob.status = 'queued';
+        renderActions(currentJob);
+        renderJobHeader(currentJob);
+        await fetch('/api/jobs/' + jobId + '/resume', { method: 'POST' });
+        pollProgress();
+      } else if (action === 'stop') {
+        currentJob.status = 'stopped';
+        currentJob.paused = false;
+        renderActions(currentJob);
+        renderJobHeader(currentJob);
+        await fetch('/api/jobs/' + jobId + '/stop', { method: 'POST' });
+        loadJob();
+      }
+    } catch (err) {
+      loadJob();
+    }
+  });
+
   async function loadJob() {
     const job = await (await fetch('/api/jobs/' + jobId)).json();
     currentJob = job;
@@ -39,16 +100,18 @@
     });
     $('jobTitle').textContent = 'Задача #' + job.id + ': ' + job.source_name;
     renderJobHeader(job);
+    renderActions(job);
     renderItems(job);
     renderApproveBar(job);
     if (job.status === 'running' || job.status === 'queued') pollProgress();
   }
 
   function renderJobHeader(job) {
-    $('jobStatus').className = 'badge ' + (STATUS_BADGE[job.status] || 'bg-secondary-lt');
-    $('jobStatus').textContent = STATUS_LABELS[job.status] || job.status;
+    const paused = !!job.paused;
+    $('jobStatus').className = 'badge ' + (paused ? 'bg-orange-lt' : (STATUS_BADGE[job.status] || 'bg-secondary-lt'));
+    $('jobStatus').textContent = paused ? 'Пауза' : (STATUS_LABELS[job.status] || job.status);
     $('jobCounts').textContent = 'сгенерировано ' + job.done + '/' + job.total;
-    const eta = (job.status === 'running' || job.status === 'queued') ? fmtDuration(job.eta) : '';
+    const eta = (!paused && (job.status === 'running' || job.status === 'queued')) ? fmtDuration(job.eta) : '';
     $('jobEta').textContent = eta ? 'осталось ~' + eta : '';
     const pct = job.total > 0 ? Math.round(job.done / job.total * 100) : 0;
     $('progressFill').style.width = pct + '%';
@@ -58,6 +121,7 @@
     try {
       const st = await (await fetch('/api/jobs/' + jobId + '/progress')).json();
       renderJobHeader({ ...st, source_name: currentJob.source_name });
+      renderActions({ ...st, paused: st.paused });
       if (st.status === 'running' || st.status === 'queued') setTimeout(pollProgress, 3000);
       else loadJob();
     } catch (e) { setTimeout(pollProgress, 3000); }
@@ -85,7 +149,7 @@
       const isApproved = v.id === approved;
       let content;
       if (v.status === 'done' && v.filename) {
-        content = '<img class="card-img-top" src="/api/thumb/' + v.filename + '" alt="вариант" loading="lazy" data-full="/api/output/' + v.filename + '">';
+        content = '<img class="card-img-top" data-src="/api/thumb/' + v.filename + '" alt="вариант" data-full="/api/output/' + v.filename + '">';
       } else if (v.status === 'error') {
         content = '<div class="d-flex align-items-center justify-content-center text-danger p-2" style="height:160px;">⚠ ' + esc(v.error || 'ошибка') + '</div>';
       } else {
@@ -113,16 +177,59 @@
     return row;
   }
 
+  function resetApproval(row) {
+    row.querySelectorAll('[data-approve]').forEach(b => {
+      b.classList.remove('btn-success');
+      b.classList.add('btn-outline-secondary');
+      b.textContent = 'Выбрать';
+    });
+    row.querySelectorAll('.card').forEach(c => c.classList.remove('border-primary'));
+    const badge = row.querySelector('.card-header .badge');
+    if (badge) {
+      badge.className = 'badge bg-secondary-lt';
+      badge.textContent = 'Не выбрано';
+    }
+  }
+
+  function markApproved(row) {
+    const badge = row.querySelector('.card-header .badge');
+    if (badge) {
+      badge.className = 'badge bg-green-lt';
+      badge.textContent = 'Утверждено';
+    }
+  }
+
   function attachItemEvents(list) {
     list.querySelectorAll('[data-approve]').forEach(btn => {
       btn.addEventListener('click', async () => {
-        const itemId = btn.closest('[data-item]').dataset.item;
-        await fetch('/api/jobs/' + jobId + '/items/' + itemId + '/approve', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variant_id: btn.dataset.approve }),
-        });
-        loadJob();
+        const row = btn.closest('[data-item]');
+        const itemId = row.dataset.item;
+        const variantId = btn.dataset.approve;
+        const item = currentJob.items.find(it => it.id === itemId);
+        if (!item) return;
+        const wasApproved = item.approved_variant_id === variantId;
+
+        // Оптимистичное обновление: кнопка становится зелёной сразу, не дожидаясь ответа.
+        resetApproval(row);
+        item.approved_variant_id = wasApproved ? null : variantId;
+        if (!wasApproved) {
+          btn.classList.remove('btn-outline-secondary');
+          btn.classList.add('btn-success');
+          btn.textContent = '✓ Выбрано';
+          btn.closest('.card').classList.add('border-primary');
+          markApproved(row);
+        }
+        renderApproveBar(currentJob);
+
+        try {
+          const res = await fetch('/api/jobs/' + jobId + '/items/' + itemId + '/approve', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ variant_id: variantId }),
+          });
+          if (!res.ok) throw new Error('approve failed');
+          loadJob();
+        } catch (e) { loadJob(); }
       });
     });
 
@@ -147,6 +254,7 @@
         showLightbox();
       });
     });
+    list.querySelectorAll('img[data-src]').forEach(img => lazyObserver.observe(img));
   }
 
   function renderApproveBar(job) {

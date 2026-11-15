@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Добавить прайс{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <h2 class="page-title">Добавить прайс</h2>
+      <div class="text-secondary mt-1">Загрузите файл — задача появится в разделе «Прайсы → Задачи»</div>
+    </div>
+    <div class="col-auto ms-auto d-print-none">
+      <a href="{{ prefix }}/prices" class="btn btn-outline-secondary">К задачам</a>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-lg-7">
+    <form id="uploadForm" class="card" novalidate>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label required">Файл прайса</label>
+          <input type="file" class="form-control" id="file" name="file"
+                 accept=".doc,.docx,.xls,.xlsx,.csv" required>
+          <div class="form-hint">Поддерживаются .doc, .docx, .xls, .xlsx, .csv. Для .doc используется LibreOffice.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Поставщик</label>
+          <select class="form-select" id="supplier_id" name="supplier_id">
+            <option value="">— не выбран —</option>
+            {% for s in suppliers %}
+            <option value="{{ s.id }}">{{ s.name }}{% if s.amalor_slug %} · {{ s.amalor_slug }}{% endif %}</option>
+            {% endfor %}
+          </select>
+          <div class="form-hint">Если поставщика нет в списке — впишите название ниже, он будет создан.</div>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Новый поставщик</label>
+          <input type="text" class="form-control" id="supplier_name" name="supplier_name"
+                 placeholder="Например: ТД Стройстекло">
+          <div class="form-hint">Используется, только если поставщик не выбран в списке.</div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Дата прайса</label>
+            <input type="date" class="form-control" id="price_date" name="price_date">
+            <div class="form-hint">Можно не заполнять — попробуем взять из имени файла.</div>
+          </div>
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Комментарий</label>
+            <input type="text" class="form-control" id="note" name="note" placeholder="Необязательно">
+          </div>
+        </div>
+
+        <div class="alert alert-info" role="alert">
+          <div class="fw-bold mb-1">Как обрабатываются колонки цен</div>
+          <div class="small">
+            После загрузки система покажет найденные колонки. Для каждой колонки можно указать тип:
+            <b>входная</b> (к ней применяется наценка сайта), <b>розничная</b> (можно поставить как есть или ниже)
+            и <b>МРЦ</b> (строго такая же цена). Одну колонку нужно отметить как основную.
+          </div>
+        </div>
+
+        <div id="uploadStatus" class="text-secondary small"></div>
+      </div>
+      <div class="card-footer d-flex justify-content-end gap-2">
+        <a href="{{ prefix }}/prices" class="btn btn-link">Отмена</a>
+        <button type="submit" class="btn btn-primary" id="submitBtn">
+          <i class="ti ti-upload me-1"></i>Загрузить и распознать
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="col-lg-5">
+    <div class="card">
+      <div class="card-body">
+        <h3 class="card-title">Что будет дальше</h3>
+        <ol class="text-secondary small ps-3 mb-0">
+          <li class="mb-2">Файл сохраняется и разбирается в фоне (статус «разбор»).</li>
+          <li class="mb-2">Строки автоматически сопоставляются с товарами Базы: по артикулу, названию и похожести.</li>
+          <li class="mb-2">В задаче видно, какой товар к какой строке подобран, с оценкой и кандидатами.</li>
+          <li class="mb-2">Вы утверждаете или меняете сопоставление — это обязательная предварительная валидация.</li>
+          <li>Только после этого нажимаете «Применить утверждённые» — цены уходят в Базу (и в очередь сайтов).</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const form = document.getElementById('uploadForm');
+  const statusEl = document.getElementById('uploadStatus');
+  const btn = document.getElementById('submitBtn');
+  const PREFIX = {{ prefix|tojson }};
+
+  form.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    const file = document.getElementById('file').files[0];
+    if (!file) {
+      statusEl.className = 'text-danger small';
+      statusEl.textContent = 'Выберите файл';
+      return;
+    }
+    const fd = new FormData(form);
+    btn.disabled = true;
+    statusEl.className = 'text-secondary small';
+    statusEl.textContent = 'Загружаем и ставим в очередь…';
+    try {
+      const res = await fetch(PREFIX + '/api/prices/upload', { method: 'POST', body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || 'Ошибка загрузки');
+      statusEl.className = 'text-success small';
+      statusEl.textContent = 'Готово. Открываем задачу…';
+      window.location.href = PREFIX + '/prices/' + data.id;
+    } catch (err) {
+      statusEl.className = 'text-danger small';
+      statusEl.textContent = err.message || String(err);
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+{% endblock %}

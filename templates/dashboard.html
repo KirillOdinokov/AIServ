@@ -127,6 +127,30 @@
   <div class="col-12">
     <div class="card">
       <div class="card-header">
+        <h3 class="card-title">Трафик сайтов: люди и боты</h3>
+        <div class="card-actions d-flex align-items-center gap-2">
+          <span class="text-secondary small" id="sitesWidgetUpdated"></span>
+          <a href="/sites" class="btn btn-sm btn-outline-secondary">Все сайты</a>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-vcenter card-table">
+          <thead>
+            <tr><th>Сайт</th><th>Люди</th><th>Боты</th><th>Доля ботов</th><th>Топ бот</th></tr>
+          </thead>
+          <tbody id="sitesWidget">
+            <tr><td colspan="5" class="text-secondary text-center py-3">Загрузка…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row row-cards mb-3">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
         <h3 class="card-title">Использование сервера</h3>
         <div class="card-actions d-flex flex-wrap align-items-center gap-3">
           <div class="btn-group btn-group-sm" data-range-group="usage">
@@ -180,4 +204,5 @@
 
 {% block scripts %}
 <script src="/static/js/dashboard.js"></script>
+<script src="/static/js/sites_widget.js?v=1"></script>
 {% endblock %}

@@ -24,6 +24,9 @@ class TaskQueue:
         self._lock = threading.Lock()
         self._paused = False
         self._current_model = None  # какая модель сейчас в VRAM
+        self._current_job_id = None
+        self._cancelled = set()
+        self._stopped = set()
         self._worker = threading.Thread(target=self._run, daemon=True)
         self._worker.start()
 
@@ -49,7 +52,7 @@ class TaskQueue:
     def resume_all(self):
         """Восстановить очередь из незавершённых задач (после перезапуска сервера)."""
         for job in store.list_jobs():
-            if job.status in ("done",):
+            if job.status in ("done", "stopped"):
                 continue
             if not job.models:
                 continue
@@ -85,6 +88,36 @@ class TaskQueue:
             job.status = "queued"
         store.update_job(job)
 
+    def cancel_job(self, job_id):
+        """Убрать все варианты удалённой задачи из очереди."""
+        with self._lock:
+            self._queue = [entry for entry in self._queue if entry[0] != job_id]
+            if self._current_job_id == job_id:
+                self._cancelled.add(job_id)
+            self._stopped.discard(job_id)
+
+    def _is_cancelled(self, job_id):
+        with self._lock:
+            return job_id in self._cancelled
+
+    def _is_stopped(self, job_id):
+        with self._lock:
+            return job_id in self._stopped
+
+    def stop_job(self, job_id):
+        """Остановить задачу: убрать из очереди и прервать текущую генерацию."""
+        job = store.get_job(job_id)
+        if job is None:
+            return False
+        with self._lock:
+            self._queue = [entry for entry in self._queue if entry[0] != job_id]
+            if self._current_job_id == job_id:
+                self._stopped.add(job_id)
+        job.status = "stopped"
+        job.paused = False
+        store.update_job(job, only_existing=True)
+        return True
+
     def pause_job(self, job_id):
         """Поставить конкретную задачу на паузу."""
         job = store.get_job(job_id)
@@ -101,8 +134,10 @@ class TaskQueue:
         job = store.get_job(job_id)
         if job is None:
             return False
+        with self._lock:
+            self._stopped.discard(job_id)
         job.paused = False
-        if job.status in ("queued", "running", "draft"):
+        if job.status in ("queued", "running", "draft", "stopped"):
             self.submit_job(job)
         store.update_job(job)
         return True
@@ -118,7 +153,7 @@ class TaskQueue:
 
             for idx, e in enumerate(self._queue):
                 job = store.get_job(e[0])
-                if job is None or job.paused:
+                if job is None or job.paused or job.status == "stopped":
                     continue
                 item = next((i for i in job.items if i.id == e[1]), None)
                 variant = next((v for v in item.variants if v.id == e[2]), None) if item else None
@@ -127,7 +162,7 @@ class TaskQueue:
 
             for idx, e in enumerate(self._queue):
                 job = store.get_job(e[0])
-                if job is None or job.paused:
+                if job is None or job.paused or job.status == "stopped":
                     continue
                 item = next((i for i in job.items if i.id == e[1]), None)
                 variant = next((v for v in item.variants if v.id == e[2]), None) if item else None
@@ -148,6 +183,8 @@ class TaskQueue:
                 continue
 
             job_id, item_id, variant_id = entry
+            with self._lock:
+                self._current_job_id = job_id
 
             # При смене модели — выгружаем предыдущую из VRAM
             if variant is not None and variant.model_id != self._current_model:
@@ -158,6 +195,12 @@ class TaskQueue:
                 self._process(job_id, item_id, variant_id)
             except Exception as e:
                 print(f"[queue] Ошибка обработки {variant_id}: {e}")
+            finally:
+                with self._lock:
+                    if self._current_job_id == job_id:
+                        self._current_job_id = None
+                    self._cancelled.discard(job_id)
+                    self._stopped.discard(job_id)
 
     def _unload_model(self):
         """Выгрузить текущую модель из VRAM (ComfyUI и/или diffusers)."""
@@ -169,6 +212,8 @@ class TaskQueue:
         comfy_client.free_memory(unload_models=True, free_memory=True)
 
     def _process(self, job_id, item_id, variant_id):
+        if self._is_cancelled(job_id) or self._is_stopped(job_id):
+            return
         job = store.get_job(job_id)
         if job is None:
             return
@@ -181,16 +226,16 @@ class TaskQueue:
 
         if job.status != "running":
             job.status = "running"
-            store.update_job(job)
+            store.update_job(job, only_existing=True)
 
         variant.status = "running"
-        store.update_job(job)
+        store.update_job(job, only_existing=True)
 
         model_id = variant.model_id
         if model_id not in config.MODELS:
             variant.status = "error"
             variant.error = f"Модель {model_id} не найдена"
-            store.update_job(job)
+            store.update_job(job, only_existing=True)
             return
         info = config.MODELS[model_id]
         steps = item.steps if item.steps is not None else info["default_steps"]
@@ -222,6 +267,9 @@ class TaskQueue:
                 reference_image = logo_file
                 reference_mode = "multimodal"
 
+        if self._is_cancelled(job_id) or self._is_stopped(job_id):
+            return
+
         start = time.time()
         try:
             generator.generate(
@@ -239,11 +287,34 @@ class TaskQueue:
             variant.error = str(e)
             variant.elapsed = round(time.time() - start, 1)
 
+        if self._is_cancelled(job_id) or store.get_job(job_id) is None:
+            try:
+                out_path.unlink(missing_ok=True)
+                if store.get_job(job_id) is None:
+                    import shutil
+                    shutil.rmtree(config.OUTPUT_DIR / job_folder, ignore_errors=True)
+            except Exception:
+                pass
+            return
+
+        if self._is_stopped(job_id):
+            try:
+                out_path.unlink(missing_ok=True)
+            except Exception:
+                pass
+            variant.status = "pending"
+            variant.filename = None
+            variant.error = None
+            variant.elapsed = None
+            job.status = "stopped"
+            store.update_job(job, only_existing=True)
+            return
+
         # Проверяем, всё ли готово
         done, total = job.progress()
         if done >= total:
             job.status = "done"
-        store.update_job(job)
+        store.update_job(job, only_existing=True)
 
     def _resolve_reference(self, job, item, job_folder):
         """Вернуть путь к картинке-референсу (или None).

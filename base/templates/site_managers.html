@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}AI ENIX База — Менеджеры продаж{% endblock %}
+
+{% block content %}
+<div class="page-header d-print-none mb-3">
+  <div class="row align-items-center">
+    <div class="col">
+      <div class="text-secondary mb-1"><a href="{{ prefix }}/sites">&larr; Сайты</a></div>
+      <h2 class="page-title">Менеджеры продаж</h2>
+      <div class="text-secondary mt-1">Отдел «Продажи» office.enix.ru, связанные с сайтами</div>
+    </div>
+    <div class="col-auto ms-auto">
+      <a href="{{ prefix }}/sites/new" class="btn btn-primary">
+        <i class="ti ti-plus me-1"></i>Добавить сайт
+      </a>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="table-responsive">
+    <table class="table table-vcenter card-table">
+      <thead>
+        <tr>
+          <th>Менеджер</th>
+          <th>Отдел</th>
+          <th>Должность</th>
+          <th>Телефон</th>
+          <th>Email</th>
+          <th>Сайты</th>
+          <th>Статус</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="fw-bold">{{ r.full_name or r.email }}</td>
+          <td class="text-secondary">{{ r.department or '—' }}</td>
+          <td class="text-secondary">{{ r.position or '—' }}</td>
+          <td class="text-nowrap">{{ r.phone or '—' }}</td>
+          <td class="text-secondary">{{ r.email or '—' }}</td>
+          <td>
+            {% if r.sites_count %}
+              <span class="badge bg-blue-lt">{{ r.sites_count }}</span>
+              <span class="text-secondary small">{{ r.site_names }}</span>
+            {% else %}
+              <span class="text-secondary">—</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if r.is_active %}<span class="badge bg-green-lt">активен</span>
+            {% else %}<span class="badge bg-secondary-lt">неактивен</span>{% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="7" class="text-secondary text-center py-4">Нет пользователей</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
