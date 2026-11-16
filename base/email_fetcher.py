@@ -14,6 +14,7 @@
                        (если пусто — поставщик заводится по имени отправителя)
 """
 import email as email_lib
+import html as html_lib
 import imaplib
 import json
 import os
@@ -25,6 +26,7 @@ from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 import db
+import email_price_service
 import price_service
 
 IMAP_HOST = os.getenv("EMAIL_IMAP_HOST", "imap.beget.com")
@@ -82,6 +84,38 @@ def _attachments(msg):
         if payload:
             out.append((filename, payload))
     return out
+
+
+def _body_text(msg):
+    """Текст письма: text/plain, при его отсутствии — HTML без тегов."""
+    plain, html_parts = [], []
+    for part in msg.walk():
+        if part.get_content_maintype() == "multipart":
+            continue
+        if "attachment" in (part.get("Content-Disposition") or "").lower():
+            continue
+        ctype = part.get_content_type()
+        if ctype not in ("text/plain", "text/html"):
+            continue
+        payload = part.get_payload(decode=True)
+        if not payload:
+            continue
+        charset = part.get_content_charset() or "utf-8"
+        try:
+            chunk = payload.decode(charset, "replace")
+        except LookupError:
+            chunk = payload.decode("utf-8", "replace")
+        (plain if ctype == "text/plain" else html_parts).append(chunk)
+    text = "\n".join(plain).strip()
+    if not text and html_parts:
+        raw = "\n".join(html_parts)
+        raw = re.sub(r"(?is)<(script|style).*?</\1>", " ", raw)
+        raw = re.sub(r"(?is)<br\s*/?>|</p>|</div>|</li>", "\n", raw)
+        raw = re.sub(r"(?s)<[^>]+>", " ", raw)
+        text = html_lib.unescape(raw)
+        text = re.sub(r"[ \t]+", " ", text)
+        text = re.sub(r"\n\s*\n+", "\n", text)
+    return text.strip()
 
 
 def _resolve_supplier(from_addr, filename, subject):
@@ -149,6 +183,45 @@ def fetch_once():
             attachs = _attachments(msg)
 
             if not attachs:
+                text = _body_text(msg)
+                if text and email_price_service.looks_like_request(text):
+                    if message_id and db.query(
+                        "SELECT 1 FROM emails WHERE message_id = %s", (message_id,)
+                    ):
+                        M.store(num, "+FLAGS", "(\\Seen)")
+                        continue
+                    email_id = None
+                    try:
+                        em = db.query(
+                            "INSERT INTO emails (message_id, mailbox, from_addr, subject, received_at, "
+                            "has_attachments, body_text, kind, status) "
+                            "VALUES (%s,%s,%s,%s,%s,false,%s,'price_text','processing') RETURNING id",
+                            (message_id or None, EMAIL_USER, from_addr or None,
+                             subject or None, received, text[:20000]),
+                        )
+                        email_id = em[0]["id"]
+                    except Exception:
+                        email_id = None
+                    try:
+                        result = email_price_service.process(
+                            from_addr, subject, message_id, text
+                        )
+                        if email_id:
+                            if result.get("ignored"):
+                                status = "ignored"
+                            elif result.get("ok"):
+                                status = "processed"
+                            else:
+                                status = "failed"
+                            db.execute(
+                                "UPDATE emails SET status=%s, processed_at=now(), notes=%s WHERE id=%s",
+                                (status, str(result)[:2000], email_id),
+                            )
+                    except Exception as e:
+                        print(f"[email_fetcher] price text failed: {e}")
+                    M.store(num, "+FLAGS", "(\\Seen)")
+                    processed += 1
+                    continue
                 M.store(num, "+FLAGS", "(\\Seen)")
                 continue
 

@@ -281,6 +281,13 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
   сайты и число обновлённых позиций; для остальных — статус разбора и ожидание
   подтверждения. Один ответ на вложение (`email_attachments.notified_at`),
   в той же ветке (In-Reply-To/References).
+- **Правка цены письмом без прайса (2026-11-16):** `base/email_price_service.py`.
+  Письмо вида «заменить цену на https://rex.moscow/<slug> 7000 рублей» меняет
+  цену сайта; URL определяет сайт и позицию, цена — итоговая. Белый список:
+  отправитель с домена `enix.ru` **или** с домена самого сайта (динамически из
+  `sites.domain`), плюс `EMAIL_PRICE_EXTRA_DOMAINS`. Обновляются `products` (в
+  режиме `source`), `product_sites.current_price`, для WP — `site_updates`;
+  пишутся `price_changes`, событие в колокольчик и ответ «было → стало».
 - Схема: suppliers, sites, products, product_sites, price_lists, price_list_items,
   price_changes, reviews, mapping_memory, site_updates, emails, email_attachments,
   documents/document_chunks (pgvector), chat_sessions/chat_messages.
