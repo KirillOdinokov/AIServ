@@ -44,21 +44,24 @@ def apply_mapping(site_id, items):
 
 def _apply_to_site(site, prices):
     site_id = site["id"]
-    changed = 0
+    changed = []
     for slug, retail in prices.items():
         prod = db.query(
-            "SELECT id, price FROM products WHERE sku = %s AND supplier_slug = %s",
+            "SELECT id, name, price FROM products WHERE sku = %s AND supplier_slug = %s",
             (slug, REX_SUPPLIER_SLUG),
         )
         if not prod:
             continue
         pid = prod[0]["id"]
+        name = prod[0].get("name") or slug
         old = prod[0].get("price")
         try:
             if old is None or float(old) != float(retail):
-                changed += 1
+                changed.append({"slug": slug, "name": name,
+                                "old": (float(old) if old is not None else None),
+                                "new": float(retail) if retail is not None else None})
         except (TypeError, ValueError):
-            changed += 1
+            changed.append({"slug": slug, "name": name, "old": old, "new": retail})
         db.execute(
             "UPDATE products SET price = %s, input_price = %s, price_source = 'rex_price', "
             "price_updated_at = now() WHERE id = %s",
@@ -109,20 +112,25 @@ def process_price_list(price_list_id):
             prices, missing = apply_mapping(site["id"], items)
             changed = _apply_to_site(site, prices)
             applied_slugs += len(prices)
-            changed_total += changed
+            changed_total += len(changed)
             per_site.append({
                 "site_id": site["id"],
                 "name": site["name"],
                 "domain": site["domain"],
-                "updated": changed,
+                "updated": len(changed),
                 "mapped": len(prices),
                 "missing": len(missing),
+                "items": changed,
             })
+        meta_sites = [
+            {k: v for k, v in s.items() if k != "items"}
+            for s in per_site
+        ]
         db.execute(
             "UPDATE price_lists SET status='applied', applied_at=now(), "
             "rows_total=%s, rows_matched=%s, "
             "meta=jsonb_build_object('rex', true, 'sites', %s::jsonb) WHERE id=%s",
-            (len(items), applied_slugs, json.dumps(per_site, ensure_ascii=False), price_list_id),
+            (len(items), applied_slugs, json.dumps(meta_sites, ensure_ascii=False), price_list_id),
         )
         for site in per_site:
             if site["updated"] > 0:

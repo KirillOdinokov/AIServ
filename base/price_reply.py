@@ -43,6 +43,18 @@ def _site_label(site):
     return "%s (%s)" % (name, domain) if domain and domain != name else name
 
 
+def _money(value):
+    if value is None:
+        return "—"
+    try:
+        num = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    if abs(num - round(num)) < 0.005:
+        return "{:,.0f}".format(num).replace(",", " ") + " ₽"
+    return "{:,.2f}".format(num).replace(",", " ").replace(".", ",") + " ₽"
+
+
 def build_body(filename, result, supplier_sites):
     lines = ["Здравствуйте!", ""]
     lines.append("Прайс-лист «%s» получен сервисом «База»." % filename)
@@ -64,6 +76,23 @@ def build_body(filename, result, supplier_sites):
                     continue
                 lines.append("  • %s — %d поз." % (_site_label(site), int(site.get("updated") or 0)))
             lines += ["", "Всего обновлено позиций: %d." % total]
+            details = []
+            multi = len([s for s in sites if s.get("items")]) > 1
+            for site in sites:
+                items = site.get("items") or []
+                if not items:
+                    continue
+                if multi:
+                    details += ["", "%s:" % _site_label(site)]
+                for it in items[:200]:
+                    details.append("  • %s — было %s → стало %s" % (
+                        it.get("name") or it.get("slug"),
+                        _money(it.get("old")), _money(it.get("new")),
+                    ))
+                if len(items) > 200:
+                    details.append("  … и ещё %d поз." % (len(items) - 200))
+            if details:
+                lines += ["", "Было → стало:"] + details
         elif sites:
             lines += ["", "Прайс обработан: все позиции совпадают с текущими ценами — изменений нет."]
         else:
