@@ -25,7 +25,9 @@ EXTRA_DOMAINS = [
 MAX_PRICE = float(os.getenv("EMAIL_PRICE_MAX", "10000000"))
 
 TRIGGER_RE = re.compile(
-    r"(замен|измен|обнов|постав|установ|цена|стоимост|price)", re.I
+    r"(новая\s+цена|новую\s+цену|новой\s+цене|"
+    r"цен|измен|помен|смен|замен|обнов|постав|установ|прав|сдела|стоимост|price)",
+    re.I,
 )
 URL_RE = re.compile(r"https?://[^\s<>\"']+", re.I)
 PRICE_RE = re.compile(
