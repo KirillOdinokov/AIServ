@@ -56,11 +56,16 @@ def build_body(filename, result, supplier_sites):
         ]
     elif result.get("auto_applied"):
         sites = result.get("sites") or []
-        if sites:
+        total = int(result.get("updated") or 0)
+        if sites and total > 0:
             lines += ["", "Цены обновлены:"]
             for site in sites:
+                if int(site.get("updated") or 0) <= 0:
+                    continue
                 lines.append("  • %s — %d поз." % (_site_label(site), int(site.get("updated") or 0)))
-            lines += ["", "Всего обновлено позиций: %d." % int(result.get("updated") or 0)]
+            lines += ["", "Всего обновлено позиций: %d." % total]
+        elif sites:
+            lines += ["", "Прайс обработан: все позиции совпадают с текущими ценами — изменений нет."]
         else:
             lines += ["", "Прайс обработан, но к поставщику не привязан ни один сайт — цены не применены."]
     else:

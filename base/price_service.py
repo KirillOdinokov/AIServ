@@ -9,6 +9,7 @@ from datetime import date, datetime
 from pathlib import Path
 
 import db
+import notifier
 import price_engine
 import price_matcher
 import price_parser
@@ -447,6 +448,8 @@ def apply_price_list(price_list_id, include_auto=False, include_applied=False):
     skipped = 0
     site_updates = 0
     ping_site_ids = set()
+    site_changes = {}
+    site_meta = {}
     with db.connect() as conn:
         with conn.cursor() as cur:
             for item in items:
@@ -550,6 +553,14 @@ def apply_price_list(price_list_id, include_auto=False, include_applied=False):
                     old_site_price = site.get("site_current_price")
                     if old_site_price is None:
                         old_site_price = item.get("old_price")
+                    site_meta[site["id"]] = (site["name"], site.get("domain"))
+                    try:
+                        different = (old_site_price is None
+                                     or float(old_site_price) != float(new_site_price))
+                    except (TypeError, ValueError):
+                        different = True
+                    if different:
+                        site_changes[site["id"]] = site_changes.get(site["id"], 0) + 1
                     cur.execute(
                         "UPDATE site_updates SET old_price = COALESCE(old_price, %s), "
                         "new_price = %s, currency = %s, source_updated_at = now(), error = NULL, "
@@ -590,6 +601,18 @@ def apply_price_list(price_list_id, include_auto=False, include_applied=False):
         "UPDATE price_lists SET status = %s, applied_at = now() WHERE id = %s",
         (new_status, price_list_id),
     )
+    rec_filename = db.query("SELECT filename FROM price_lists WHERE id = %s", (price_list_id,))
+    filename = rec_filename[0]["filename"] if rec_filename else "прайс"
+    for sid, count in site_changes.items():
+        if not count:
+            continue
+        name, domain = site_meta.get(sid, ("", ""))
+        notifier.add_event(
+            "price_update", name or domain,
+            "Цены обновлены: %s" % (name or domain),
+            "%s — %d поз. по прайсу «%s»." % (domain or name, count, filename),
+            "price_update:%s:%s" % (price_list_id, sid),
+        )
     return {"ok": True, "applied": applied, "kept": kept, "skipped": skipped,
             "open": open_count, "site_updates": site_updates, "status": new_status}
 

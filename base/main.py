@@ -7,9 +7,10 @@ import asyncio
 import json
 import os
 import re
+import secrets
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
@@ -57,6 +58,20 @@ def _norm_phone(raw):
     if digits[0] == "7":
         return "+" + digits
     return "+" + digits
+
+
+def _next_domain_expiry(registration_date):
+    """Ближайшая годовщина регистрации домена (домен продлевается ежегодно)."""
+    if not registration_date:
+        return None
+    today = date.today()
+    try:
+        candidate = registration_date.replace(year=today.year)
+        if candidate < today:
+            candidate = candidate.replace(year=today.year + 1)
+    except ValueError:
+        return None
+    return candidate
 
 
 def _resolve_legal_entity(text):
@@ -440,6 +455,13 @@ def sites_page(request: Request):
         r["site_id"]: r["n"]
         for r in db.query("SELECT site_id, count(*) AS n FROM product_sites GROUP BY site_id")
     }
+    domain_expiries = {
+        r["site_id"]: _next_domain_expiry(r["registration_date"])
+        for r in db.query(
+            "SELECT DISTINCT ON (site_id) site_id, registration_date FROM domains "
+            "ORDER BY site_id, id"
+        )
+    }
     top_suppliers = {}
     for r in db.query(
         "SELECT DISTINCT ON (ps.site_id) ps.site_id, sup.name, count(*) AS n "
@@ -471,6 +493,7 @@ def sites_page(request: Request):
             "products": (s["remote_products"] if s["remote_products"] is not None
                          else products.get(s["id"], 0)),
             "main_supplier": s["configured_supplier"] or top_suppliers.get(s["id"]),
+            "domain_expires": domain_expiries.get(s["id"]),
         })
     return templates.TemplateResponse(request, "site_dashboard.html", {
         "active": "sites", "cards": cards,
@@ -838,6 +861,7 @@ def site_detail_page(request: Request, site_id: int):
         (site_id,),
     )
     domain = domain[0] if domain else None
+    domain_expires = _next_domain_expiry(domain["registration_date"] if domain else None)
     server = None
     if site.get("server_id"):
         r = db.query(
@@ -867,6 +891,7 @@ def site_detail_page(request: Request, site_id: int):
         "last": checks[0] if checks else None, "uptime": uptime, "preview": preview,
         "servers": servers, "domain": domain, "server": server,
         "server_months": server_months, "server_block_date": server_block_date,
+        "domain_expires": domain_expires,
     })
 
 
@@ -1116,6 +1141,62 @@ def api_site_prices(site_id: int):
     return {"site_id": site_id, "prices": rex_price_service.get_site_prices(site_id)}
 
 
+@app.get("/api/site-hosting")
+def api_site_hosting():
+    """Сайты по серверам (для страницы /servers в основном интерфейсе)."""
+    rows = db.query(
+        "SELECT sv.name AS server_name, s.id, s.name, s.domain, "
+        "       COALESCE(NULLIF(btrim(s.base_url), ''), 'https://' || s.domain) AS url "
+        "FROM sites s JOIN servers sv ON sv.id = s.server_id "
+        "ORDER BY sv.name, s.name"
+    )
+    out = {}
+    for row in rows:
+        out.setdefault(row["server_name"], []).append({
+            "id": row["id"], "name": row["name"],
+            "domain": row["domain"], "url": row["url"],
+        })
+    return {"servers": out}
+
+
+@app.post("/api/site/events")
+async def api_site_events(request: Request):
+    """События сайта (публикация статей) от синка rex.moscow. Заголовок X-Notify-Key."""
+    expected = os.getenv("METRICS_KEY", "")
+    given = request.headers.get("X-Notify-Key", "")
+    if not expected or not secrets.compare_digest(given, expected):
+        raise HTTPException(401, "unauthorized")
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(400, "bad json")
+    try:
+        site_id = int(body.get("site_id") or 0)
+    except (TypeError, ValueError):
+        raise HTTPException(400, "bad site_id")
+    rows = db.query("SELECT id, name, domain, base_url FROM sites WHERE id = %s", (site_id,))
+    if not rows:
+        raise HTTPException(404, "site not found")
+    site = rows[0]
+    base = (site.get("base_url") or "").strip() or ("https://" + (site.get("domain") or ""))
+    stamp = datetime.now(timezone(timedelta(hours=3))).strftime("%d.%m.%Y %H:%M")
+    created = 0
+    for item in (body.get("items") or [])[:50]:
+        slug = str(item.get("slug") or "").strip()
+        title = str(item.get("title") or slug).strip() or slug
+        if not slug:
+            continue
+        url = base.rstrip("/") + "/" + slug
+        if notifier.add_event(
+            "publication", site["name"],
+            "Статья опубликована: %s" % title,
+            "%s — %s. Опубликовано %s." % (site["name"], url, stamp),
+            "publication:%s:%s" % (site_id, slug),
+        ):
+            created += 1
+    return {"ok": True, "created": created}
+
+
 @app.post("/api/monitor/check")
 async def api_monitor_check():
     return await site_watch.check_all()
@@ -1156,7 +1237,8 @@ def api_notifications(limit: int = 30):
         (limit,),
     )
     unread = db.query(
-        "SELECT count(*) AS c FROM notifications WHERE status = 'active' AND read_at IS NULL"
+        "SELECT count(*) AS c FROM notifications "
+        "WHERE status IN ('active', 'event') AND read_at IS NULL"
     )[0]["c"]
     return {"unread": int(unread), "items": items}
 

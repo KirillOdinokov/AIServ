@@ -62,6 +62,18 @@ def _resolve(dedup_key):
     )
 
 
+def add_event(kind, subject, title, message, dedup_key):
+    """Событие (публикация, изменение цен): без закрытия, без повторов по dedup_key."""
+    rows = db.query(
+        "INSERT INTO notifications (dedup_key, kind, severity, subject, title, message, status) "
+        "SELECT %s, %s, 'info', %s, %s, %s, 'event' "
+        "WHERE NOT EXISTS (SELECT 1 FROM notifications WHERE dedup_key = %s) "
+        "RETURNING id",
+        (dedup_key, kind, subject[:200], title[:300], message[:1000], dedup_key),
+    )
+    return bool(rows)
+
+
 def _recent_checks():
     rows = db.query(
         "SELECT site_id, ok, status_code, ttfb_ms, error, checked_at, "

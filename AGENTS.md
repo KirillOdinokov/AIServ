@@ -262,13 +262,20 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
   `8000/api/session/check`); отдельного логина нет. В главном sidebar «База» —
   выпадающее подменю (Обзор, Товары, Сайты, Поставщики).
 - Реализовано: обзор (счётчики), товары (поиск/пагинация), сайты, поставщики.
+- Окончание домена считается автоматически — ближайшая годовщина
+  `domains.registration_date` (`_next_domain_expiry`), выводится в карточках сайтов
+  и в настройках сайта; ручное поле `expiration_date` — только переопределение.
 - **Уведомления (2026-11-16):** `notifications` (схема `base/schema_notifications.sql`),
   фоновый `base/notifier.py` (раз в минуту): сайт недоступен (2 проверки подряд),
   TTFB ≥ 1500 мс, сервер без метрик > 5 мин, средняя за 5 мин CPU/RAM > 80%.
   Активная проблема не дублируется (`dedup_key`), восстановление закрывает запись.
+  События (`status='event'`, без закрытия): публикация статьи на rex.moscow
+  (`POST /api/site/events` с заголовком `X-Notify-Key` = `METRICS_KEY`, вызывает
+  rex-синк после деплоя) и изменение цен (`price_update`, пишут rex/generic-контуры).
   API: `GET /api/notifications`, `POST /api/notifications/read`, `POST /api/notifications/check`.
   Колокольчик — в шапке (`templates/base.html` и `base/templates/base.html`,
   `static/js/notifications.js`), данные берёт из `/base/api/notifications`.
+  Сайты по серверам для `/servers` — `GET /api/site-hosting` (из `sites.server_id`).
 - **Автоответ на прайс (2026-11-16):** письмо менеджеру после обработки вложения
   из `price@enix.ooo` (`base/mailer.py` + `base/price_reply.py`): для rex.moscow —
   сайты и число обновлённых позиций; для остальных — статус разбора и ожидание

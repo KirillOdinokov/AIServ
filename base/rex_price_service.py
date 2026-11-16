@@ -9,6 +9,7 @@ import json
 import traceback
 
 import db
+import notifier
 import price_engine
 import rex_price_parser
 
@@ -43,14 +44,21 @@ def apply_mapping(site_id, items):
 
 def _apply_to_site(site, prices):
     site_id = site["id"]
+    changed = 0
     for slug, retail in prices.items():
         prod = db.query(
-            "SELECT id FROM products WHERE sku = %s AND supplier_slug = %s",
+            "SELECT id, price FROM products WHERE sku = %s AND supplier_slug = %s",
             (slug, REX_SUPPLIER_SLUG),
         )
         if not prod:
             continue
         pid = prod[0]["id"]
+        old = prod[0].get("price")
+        try:
+            if old is None or float(old) != float(retail):
+                changed += 1
+        except (TypeError, ValueError):
+            changed += 1
         db.execute(
             "UPDATE products SET price = %s, input_price = %s, price_source = 'rex_price', "
             "price_updated_at = now() WHERE id = %s",
@@ -65,6 +73,7 @@ def _apply_to_site(site, prices):
             "current_price = EXCLUDED.current_price, sync_status = 'synced', last_sync_at = now()",
             (pid, site_id, slug, slug, site_price),
         )
+    return changed
 
 
 def process_price_list(price_list_id):
@@ -81,16 +90,19 @@ def process_price_list(price_list_id):
         items = rex_price_parser.parse(rec["stored_path"])
         sites = db.query("SELECT * FROM sites WHERE supplier_id = %s", (rec["supplier_id"],))
         applied_slugs = 0
+        changed_total = 0
         per_site = []
         for site in sites:
             prices, missing = apply_mapping(site["id"], items)
-            _apply_to_site(site, prices)
+            changed = _apply_to_site(site, prices)
             applied_slugs += len(prices)
+            changed_total += changed
             per_site.append({
                 "site_id": site["id"],
                 "name": site["name"],
                 "domain": site["domain"],
-                "updated": len(prices),
+                "updated": changed,
+                "mapped": len(prices),
                 "missing": len(missing),
             })
         db.execute(
@@ -99,11 +111,20 @@ def process_price_list(price_list_id):
             "meta=jsonb_build_object('rex', true, 'sites', %s::jsonb) WHERE id=%s",
             (len(items), applied_slugs, json.dumps(per_site, ensure_ascii=False), price_list_id),
         )
+        for site in per_site:
+            if site["updated"] > 0:
+                notifier.add_event(
+                    "price_update", site["name"],
+                    "Цены обновлены: %s" % site["name"],
+                    "%s — %d поз. по прайсу «%s»."
+                    % (site["domain"] or site["name"], site["updated"], rec["filename"]),
+                    "price_update:%s:%s" % (price_list_id, site["site_id"]),
+                )
         return {
             "ok": True,
             "auto_applied": True,
             "sites": per_site,
-            "updated": applied_slugs,
+            "updated": changed_total,
             "rows": len(items),
         }
     except Exception as exc:

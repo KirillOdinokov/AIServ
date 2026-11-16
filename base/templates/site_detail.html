@@ -270,6 +270,9 @@
             <label class="form-label">Окончание домена</label>
             <input type="date" class="form-control" name="domain_expiration_date"
                    value="{{ domain.expiration_date.isoformat() if domain and domain.expiration_date else '' }}">
+            {% if domain_expires %}
+            <div class="form-hint">авто: до {{ domain_expires.strftime('%d.%m.%Y') }} (ежегодно от регистрации)</div>
+            {% endif %}
           </div>
 
           <div class="col-12">
