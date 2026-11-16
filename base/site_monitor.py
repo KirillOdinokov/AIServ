@@ -88,8 +88,8 @@ def check_site(site):
                     "UPDATE sites SET remote_products = %s, remote_products_at = now() WHERE id = %s",
                     (total, site["id"]),
                 )
-        except Exception:
-            logger.exception("site %s: wc products count failed", site.get("id"))
+        except Exception as exc:
+            logger.warning("site %s: wc products count failed: %s", site.get("id"), exc)
     logger.info("site %s (%s): ok=%s code=%s ttfb=%sms", site["id"], site.get("domain"),
                 res["ok"], res["status_code"], res["ttfb_ms"])
     return {"site_id": site["id"], **res}
