@@ -55,13 +55,14 @@ def _apply_to_site(site, prices):
         pid = prod[0]["id"]
         name = prod[0].get("name") or slug
         old = prod[0].get("price")
-        try:
-            if old is None or float(old) != float(retail):
-                changed.append({"slug": slug, "name": name,
-                                "old": (float(old) if old is not None else None),
-                                "new": float(retail) if retail is not None else None})
-        except (TypeError, ValueError):
-            changed.append({"slug": slug, "name": name, "old": old, "new": retail})
+        if old is not None or retail is not None:
+            try:
+                if old is None or retail is None or float(old) != float(retail):
+                    changed.append({"slug": slug, "name": name,
+                                    "old": (float(old) if old is not None else None),
+                                    "new": float(retail) if retail is not None else None})
+            except (TypeError, ValueError):
+                changed.append({"slug": slug, "name": name, "old": old, "new": retail})
         db.execute(
             "UPDATE products SET price = %s, input_price = %s, price_source = 'rex_price', "
             "price_updated_at = now() WHERE id = %s",
