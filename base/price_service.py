@@ -12,6 +12,7 @@ import db
 import price_engine
 import price_matcher
 import price_parser
+import price_reply
 import rex_price_service
 
 UPLOAD_DIR = Path(__file__).resolve().parent / "uploads" / "prices"
@@ -113,70 +114,91 @@ def _apply_column_presets(columns, supplier_id):
 
 
 def process_price_list(price_list_id):
+    """Разбор/применение прайса + автоответ отправителю письма."""
     try:
-        db.execute("UPDATE price_lists SET status='parsing', error=NULL WHERE id=%s", (price_list_id,))
-        rec = db.query("SELECT * FROM price_lists WHERE id=%s", (price_list_id,))[0]
-        # прайс ТД РЕКС (rex.moscow) обрабатывается специализированным контуром
-        if rec.get("supplier_id"):
-            sup = db.query("SELECT slug FROM suppliers WHERE id=%s", (rec["supplier_id"],))
-            if sup and sup[0]["slug"] == rex_price_service.REX_SUPPLIER_SLUG:
-                rex_price_service.process_price_list(price_list_id)
-                return
-        parsed = price_parser.parse_file(rec["stored_path"])
-        columns = parsed["columns"]
-        rows = parsed["rows"]
-        _apply_column_presets(columns, rec.get("supplier_id"))
-        base_col = next((c for c in columns if c.get("is_base")), columns[0] if columns else None)
-
-        with db.connect() as conn:
-            with conn.cursor() as cur:
-                cur.execute("DELETE FROM price_list_columns WHERE price_list_id = %s", (price_list_id,))
-                cur.execute("DELETE FROM price_list_items WHERE price_list_id = %s", (price_list_id,))
-                for col in columns:
-                    cur.execute(
-                        "INSERT INTO price_list_columns (price_list_id, col_index, header, price_type, "
-                        "markup_pct, is_base, volume_min, volume_max, currency, unit) "
-                        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                        (
-                            price_list_id, col["col_index"], col["header"], col["price_type"],
-                            col.get("markup_pct") or 0, bool(col["is_base"]),
-                            col["volume_min"], col["volume_max"], col["currency"], col["unit"],
-                        ),
-                    )
-                for row in rows:
-                    prices = row["prices"]
-                    base_price = prices.get(str(base_col["col_index"])) if base_col else None
-                    raw_extra = dict(row["raw_extra"] or {})
-                    if row.get("section"):
-                        raw_extra["Раздел"] = row["section"]
-                    cur.execute(
-                        "INSERT INTO price_list_items (price_list_id, row_num, raw_name, raw_sku, "
-                        "raw_unit, raw_price, raw_currency, raw_extra, normalized_name, prices, "
-                        "raw_row, match_status) "
-                        "VALUES (%s, %s, %s, %s, %s, %s, 'RUB', %s, %s, %s, %s, 'pending')",
-                        (
-                            price_list_id, row["row_num"], row["raw_name"], row["raw_sku"],
-                            row["raw_unit"], base_price,
-                            json.dumps(raw_extra, ensure_ascii=False),
-                            price_matcher.norm(row["raw_name"]),
-                            json.dumps(prices, ensure_ascii=False),
-                            json.dumps(row["raw_row"], ensure_ascii=False),
-                        ),
-                    )
-                meta = dict(parsed.get("meta") or {})
-                meta["price_columns"] = len(columns)
-                cur.execute(
-                    "UPDATE price_lists SET rows_total = %s, meta = %s, status = 'matching' WHERE id = %s",
-                    (len(rows), json.dumps(meta, ensure_ascii=False), price_list_id),
-                )
-            conn.commit()
-        run_matching(price_list_id)
+        result = _process_price_list(price_list_id)
     except Exception as exc:
         traceback.print_exc()
         db.execute(
             "UPDATE price_lists SET status = 'failed', error = %s WHERE id = %s",
             (str(exc)[:2000], price_list_id),
         )
+        result = {"ok": False, "error": str(exc)[:500]}
+    try:
+        price_reply.reply_for_price_list(price_list_id, result)
+    except Exception:
+        traceback.print_exc()
+
+
+def _process_price_list(price_list_id):
+    db.execute("UPDATE price_lists SET status='parsing', error=NULL WHERE id=%s", (price_list_id,))
+    rec = db.query("SELECT * FROM price_lists WHERE id=%s", (price_list_id,))[0]
+    # прайс ТД РЕКС (rex.moscow) обрабатывается специализированным контуром
+    if rec.get("supplier_id"):
+        sup = db.query("SELECT slug FROM suppliers WHERE id=%s", (rec["supplier_id"],))
+        if sup and sup[0]["slug"] == rex_price_service.REX_SUPPLIER_SLUG:
+            return rex_price_service.process_price_list(price_list_id)
+
+    parsed = price_parser.parse_file(rec["stored_path"])
+    columns = parsed["columns"]
+    rows = parsed["rows"]
+    _apply_column_presets(columns, rec.get("supplier_id"))
+    base_col = next((c for c in columns if c.get("is_base")), columns[0] if columns else None)
+
+    with db.connect() as conn:
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM price_list_columns WHERE price_list_id = %s", (price_list_id,))
+            cur.execute("DELETE FROM price_list_items WHERE price_list_id = %s", (price_list_id,))
+            for col in columns:
+                cur.execute(
+                    "INSERT INTO price_list_columns (price_list_id, col_index, header, price_type, "
+                    "markup_pct, is_base, volume_min, volume_max, currency, unit) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (
+                        price_list_id, col["col_index"], col["header"], col["price_type"],
+                        col.get("markup_pct") or 0, bool(col["is_base"]),
+                        col["volume_min"], col["volume_max"], col["currency"], col["unit"],
+                    ),
+                )
+            for row in rows:
+                prices = row["prices"]
+                base_price = prices.get(str(base_col["col_index"])) if base_col else None
+                raw_extra = dict(row["raw_extra"] or {})
+                if row.get("section"):
+                    raw_extra["Раздел"] = row["section"]
+                cur.execute(
+                    "INSERT INTO price_list_items (price_list_id, row_num, raw_name, raw_sku, "
+                    "raw_unit, raw_price, raw_currency, raw_extra, normalized_name, prices, "
+                    "raw_row, match_status) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, 'RUB', %s, %s, %s, %s, 'pending')",
+                    (
+                        price_list_id, row["row_num"], row["raw_name"], row["raw_sku"],
+                        row["raw_unit"], base_price,
+                        json.dumps(raw_extra, ensure_ascii=False),
+                        price_matcher.norm(row["raw_name"]),
+                        json.dumps(prices, ensure_ascii=False),
+                        json.dumps(row["raw_row"], ensure_ascii=False),
+                    ),
+                )
+            meta = dict(parsed.get("meta") or {})
+            meta["price_columns"] = len(columns)
+            cur.execute(
+                "UPDATE price_lists SET rows_total = %s, meta = %s, status = 'matching' WHERE id = %s",
+                (len(rows), json.dumps(meta, ensure_ascii=False), price_list_id),
+            )
+        conn.commit()
+    run_matching(price_list_id)
+    final = db.query(
+        "SELECT status, rows_total, rows_matched FROM price_lists WHERE id = %s",
+        (price_list_id,),
+    )[0]
+    return {
+        "ok": True,
+        "auto_applied": False,
+        "status": final.get("status"),
+        "rows": final.get("rows_total") or 0,
+        "matched": final.get("rows_matched") or 0,
+    }
 
 
 def run_matching(price_list_id, only_open=False):

@@ -1,10 +1,12 @@
-"""Мониторинг доступности сайтов: пинг раз в час + TTFB.
+"""Мониторинг доступности сайтов: пинг раз в 5 минут + TTFB.
 
 Проверки пишутся в таблицу site_checks (лог аптайма по каждому сайту).
+Интервал задаётся SITE_CHECK_INTERVAL (секунды).
 """
 import asyncio
 import base64
 import logging
+import os
 import time
 import urllib.error
 import urllib.request
@@ -13,7 +15,7 @@ import db
 
 logger = logging.getLogger("base.site_monitor")
 
-CHECK_INTERVAL = 3600
+CHECK_INTERVAL = int(os.getenv("SITE_CHECK_INTERVAL", "300"))
 TIMEOUT = 20
 UA = "Mozilla/5.0 (compatible; AI-ENIX-Monitor/1.0)"
 

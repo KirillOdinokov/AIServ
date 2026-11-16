@@ -5,6 +5,7 @@ slug -> (лист, строка, вариант упаковки) — в site_pr
 становится базовой ценой товара; итоговая цена сайта считается через
 price_engine.compute_site_price() и кладётся в product_sites.current_price.
 """
+import json
 import traceback
 
 import db
@@ -67,31 +68,51 @@ def _apply_to_site(site, prices):
 
 
 def process_price_list(price_list_id):
-    """Полный цикл для прайса ТД РЕКС: парсинг -> маппинг -> цены сайта."""
+    """Полный цикл для прайса ТД РЕКС: парсинг -> маппинг -> цены сайта.
+
+    Возвращает результат для автоответа: какие сайты и сколько позиций обновлено.
+    """
     rec = db.query("SELECT * FROM price_lists WHERE id = %s", (price_list_id,))
     if not rec:
-        return
+        return {"ok": False, "error": "прайс не найден"}
     rec = rec[0]
     db.execute("UPDATE price_lists SET status='parsing', error=NULL WHERE id=%s", (price_list_id,))
     try:
         items = rex_price_parser.parse(rec["stored_path"])
         sites = db.query("SELECT * FROM sites WHERE supplier_id = %s", (rec["supplier_id"],))
         applied_slugs = 0
+        per_site = []
         for site in sites:
             prices, missing = apply_mapping(site["id"], items)
             _apply_to_site(site, prices)
             applied_slugs += len(prices)
+            per_site.append({
+                "site_id": site["id"],
+                "name": site["name"],
+                "domain": site["domain"],
+                "updated": len(prices),
+                "missing": len(missing),
+            })
         db.execute(
             "UPDATE price_lists SET status='applied', applied_at=now(), "
-            "rows_total=%s, rows_matched=%s, meta=jsonb_build_object('rex', true) WHERE id=%s",
-            (len(items), applied_slugs, price_list_id),
+            "rows_total=%s, rows_matched=%s, "
+            "meta=jsonb_build_object('rex', true, 'sites', %s::jsonb) WHERE id=%s",
+            (len(items), applied_slugs, json.dumps(per_site, ensure_ascii=False), price_list_id),
         )
+        return {
+            "ok": True,
+            "auto_applied": True,
+            "sites": per_site,
+            "updated": applied_slugs,
+            "rows": len(items),
+        }
     except Exception as exc:
         traceback.print_exc()
         db.execute(
             "UPDATE price_lists SET status='failed', error=%s WHERE id=%s",
             (str(exc)[:2000], price_list_id),
         )
+        return {"ok": False, "error": str(exc)[:500]}
 
 
 def get_site_prices(site_id):

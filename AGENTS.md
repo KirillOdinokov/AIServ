@@ -186,6 +186,11 @@ static/            — веб-интерфейс
 `hf_token.txt`, `deepseek_token.txt`, `ollama_token.txt`, `nanobanana_token.txt`.
 Читаются при старте модулей. Не коммитить ключи.
 
+Почта прайсов — env в `.env`: `EMAIL_IMAP_HOST/PORT`, `EMAIL_USER`, `EMAIL_PASS`,
+`EMAIL_BOX`, `EMAIL_POLL_SECONDS` (приём), `EMAIL_SMTP_HOST/PORT`, `EMAIL_FROM_NAME`
+(автоответы), `EMAIL_SUPPLIER_MAP` (JSON отправитель→поставщик). Пороги уведомлений —
+`NOTIFY_*` (необязательны).
+
 ## Доступы
 
 - Веб: **`https://ai.enix.ru:10443`** (Let's Encrypt, nginx SNI на 10443). Легаси:
@@ -255,6 +260,18 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
   `8000/api/session/check`); отдельного логина нет. В главном sidebar «База» —
   выпадающее подменю (Обзор, Товары, Сайты, Поставщики).
 - Реализовано: обзор (счётчики), товары (поиск/пагинация), сайты, поставщики.
+- **Уведомления (2026-11-16):** `notifications` (схема `base/schema_notifications.sql`),
+  фоновый `base/notifier.py` (раз в минуту): сайт недоступен (2 проверки подряд),
+  TTFB ≥ 1500 мс, сервер без метрик > 5 мин, средняя за 5 мин CPU/RAM > 80%.
+  Активная проблема не дублируется (`dedup_key`), восстановление закрывает запись.
+  API: `GET /api/notifications`, `POST /api/notifications/read`, `POST /api/notifications/check`.
+  Колокольчик — в шапке (`templates/base.html` и `base/templates/base.html`,
+  `static/js/notifications.js`), данные берёт из `/base/api/notifications`.
+- **Автоответ на прайс (2026-11-16):** письмо менеджеру после обработки вложения
+  из `price@enix.ooo` (`base/mailer.py` + `base/price_reply.py`): для rex.moscow —
+  сайты и число обновлённых позиций; для остальных — статус разбора и ожидание
+  подтверждения. Один ответ на вложение (`email_attachments.notified_at`),
+  в той же ветке (In-Reply-To/References).
 - Схема: suppliers, sites, products, product_sites, price_lists, price_list_items,
   price_changes, reviews, mapping_memory, site_updates, emails, email_attachments,
   documents/document_chunks (pgvector), chat_sessions/chat_messages.

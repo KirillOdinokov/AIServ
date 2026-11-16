@@ -6,7 +6,7 @@
   <title>{% block title %}AI ENIX{% endblock %}</title>
   <link rel="stylesheet" href="/static/vendor/tabler/tabler.min.css">
   <link rel="stylesheet" href="/static/vendor/tabler-icons/tabler-icons.min.css">
-  <link rel="stylesheet" href="/static/css/ai-enix.css?v=4">
+  <link rel="stylesheet" href="/static/css/ai-enix.css?v=5">
   <link rel="icon" type="image/png" href="/static/img/logo.png">
   {% block head %}{% endblock %}
 </head>
@@ -158,6 +158,19 @@
             <span class="hw-item" id="hwNow">В VRAM: …</span>
             <span class="hw-item" id="hwFree">Free in: …</span>
           </div>
+          <div class="notif-wrap" id="notifWrap" data-url="/base/api/notifications">
+            <button class="notif-btn" type="button" id="notifBtn" aria-label="Уведомления" aria-expanded="false">
+              <i class="ti ti-bell"></i>
+              <span class="notif-badge" id="notifBadge" hidden>0</span>
+            </button>
+            <div class="notif-panel" id="notifPanel" hidden>
+              <div class="notif-head">
+                <span>Уведомления</span>
+                <button class="notif-readall" type="button" id="notifReadAll">Прочитать все</button>
+              </div>
+              <div class="notif-list" id="notifList"><div class="notif-empty">Загрузка…</div></div>
+            </div>
+          </div>
         </div>
       </div>
     </header>
@@ -182,6 +195,7 @@
 <script src="/static/vendor/tabler/tabler.min.js"></script>
 <script src="/static/status_bar.js?v=2"></script>
 <script src="/static/js/base.js?v=2"></script>
+<script src="/static/js/notifications.js?v=1"></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

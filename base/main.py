@@ -20,6 +20,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 import db
 import email_fetcher
+import notifier
 import price_engine
 import price_matcher
 import price_service
@@ -95,6 +96,7 @@ def _resolve_address(text):
 @app.on_event("startup")
 async def _startup_site_monitor():
     site_monitor.start()
+    notifier.start()
     price_service.recover_stuck()
     email_fetcher.start()
 
@@ -1142,6 +1144,51 @@ def api_site_check(site_id: int):
     if not row:
         raise HTTPException(404, "site not found")
     return site_monitor.check_site(row[0])
+
+
+@app.get("/api/notifications")
+def api_notifications(limit: int = 30):
+    limit = max(1, min(int(limit), 100))
+    items = db.query(
+        "SELECT id, kind, severity, subject, title, message, status, "
+        "       created_at, updated_at, resolved_at, read_at "
+        "FROM notifications ORDER BY created_at DESC LIMIT %s",
+        (limit,),
+    )
+    unread = db.query(
+        "SELECT count(*) AS c FROM notifications WHERE status = 'active' AND read_at IS NULL"
+    )[0]["c"]
+    return {"unread": int(unread), "items": items}
+
+
+@app.post("/api/notifications/read")
+async def api_notifications_read(request: Request):
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    if payload.get("all"):
+        updated = db.execute("UPDATE notifications SET read_at = now() WHERE read_at IS NULL")
+        return {"ok": True, "updated": updated}
+    ids = []
+    for value in payload.get("ids") or []:
+        try:
+            ids.append(int(value))
+        except (TypeError, ValueError):
+            continue
+    if not ids:
+        return {"ok": True, "updated": 0}
+    updated = db.execute(
+        "UPDATE notifications SET read_at = now() WHERE id = ANY(%s) AND read_at IS NULL",
+        (ids,),
+    )
+    return {"ok": True, "updated": updated}
+
+
+@app.post("/api/notifications/check")
+async def api_notifications_check():
+    summary = await asyncio.to_thread(notifier.check_all)
+    return {"ok": True, "summary": summary}
 
 
 PRICE_STATUS_RU = {
