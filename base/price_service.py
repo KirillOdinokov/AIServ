@@ -573,10 +573,16 @@ def apply_price_list(price_list_id, include_auto=False, include_applied=False):
                         cur.execute(
                             "INSERT INTO site_updates (site_id, product_id, old_price, new_price, "
                             "currency, status, source_updated_at) "
-                            "VALUES (%s, %s, %s, %s, %s, 'pending', now())",
+                            "VALUES (%s, %s, %s, %s, 'RUB', 'pending', now())",
                             (site["id"], product_id, old_site_price, new_site_price,
                              site.get("currency") or "RUB"),
                         )
+                    # актуальная цена сайта для API (Amalor и др.), без очереди плагина
+                    cur.execute(
+                        "UPDATE product_sites SET current_price = %s, last_sync_at = now() "
+                        "WHERE site_id = %s AND product_id = %s",
+                        (new_site_price, site["id"], product_id),
+                    )
                     site_updates += 1
         conn.commit()
 
@@ -646,6 +652,11 @@ def recompute_site_queue(site_id):
                     "version = nextval('site_update_version_seq'), "
                     "source_updated_at = now() WHERE id = %s",
                     (new_price, update["id"]),
+                )
+                cur.execute(
+                    "UPDATE product_sites SET current_price = %s, last_sync_at = now() "
+                    "WHERE site_id = %s AND product_id = %s",
+                    (new_price, site_id, update["product_id"]),
                 )
                 changed += 1
         conn.commit()

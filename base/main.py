@@ -1134,11 +1134,41 @@ async def api_site_create(request: Request):
 
 
 @app.get("/api/site/{site_id}/prices")
-def api_site_prices(site_id: int):
-    """Итоговые цены сайта (slug -> цена) — для статик-генератора rex.moscow и др."""
+def api_site_prices(site_id: int, since: str | None = None, non_null: bool = False):
+    """Итоговые цены сайта (slug -> цена) — для статик-генератора rex.moscow и Amalor.
+
+    `since` (ISO) — только изменённые после момента; `non_null=1` — без пустых цен.
+    В ответе `cursor` — безопасная точка для следующего инкремента (с запасом 5 мин).
+    """
     if not db.query("SELECT 1 FROM sites WHERE id = %s", (site_id,)):
         raise HTTPException(404, "site not found")
-    return {"site_id": site_id, "prices": rex_price_service.get_site_prices(site_id)}
+    since_dt = None
+    if since:
+        try:
+            since_dt = datetime.fromisoformat(since.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(400, "bad since")
+        if since_dt.tzinfo is None:
+            since_dt = since_dt.replace(tzinfo=timezone.utc)
+    sql = (
+        "SELECT site_sku, current_price FROM product_sites "
+        "WHERE site_id = %s AND site_sku IS NOT NULL"
+    )
+    params = [site_id]
+    if since_dt is not None:
+        sql += " AND last_sync_at > %s"
+        params.append(since_dt)
+    elif non_null:
+        sql += " AND current_price IS NOT NULL"
+    rows = db.query(sql, tuple(params))
+    prices = {r["site_sku"]: r["current_price"] for r in rows}
+    now = datetime.now(timezone.utc)
+    return {
+        "site_id": site_id,
+        "prices": prices,
+        "generated_at": now.isoformat(),
+        "cursor": (now - timedelta(minutes=5)).isoformat(),
+    }
 
 
 @app.get("/api/site-hosting")
