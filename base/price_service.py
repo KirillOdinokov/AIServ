@@ -610,7 +610,8 @@ def apply_price_list(price_list_id, include_auto=False, include_applied=False):
         notifier.add_event(
             "price_update", name or domain,
             "Цены обновлены: %s" % (name or domain),
-            "%s — %d поз. по прайсу «%s»." % (domain or name, count, filename),
+            "%s — %d поз. по прайсу «%s» (поставлено в очередь обновления сайта)."
+            % (domain or name, count, filename),
             "price_update:%s:%s" % (price_list_id, sid),
         )
     return {"ok": True, "applied": applied, "kept": kept, "skipped": skipped,

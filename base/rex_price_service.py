@@ -116,7 +116,7 @@ def process_price_list(price_list_id):
                 notifier.add_event(
                     "price_update", site["name"],
                     "Цены обновлены: %s" % site["name"],
-                    "%s — %d поз. по прайсу «%s»."
+                    "%s — %d поз. по прайсу «%s». Сайт подхватит изменения в течение 10 минут."
                     % (site["domain"] or site["name"], site["updated"], rec["filename"]),
                     "price_update:%s:%s" % (price_list_id, site["site_id"]),
                 )
