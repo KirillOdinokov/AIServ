@@ -89,6 +89,19 @@ def process_price_list(price_list_id):
     try:
         items = rex_price_parser.parse(rec["stored_path"])
         sites = db.query("SELECT * FROM sites WHERE supplier_id = %s", (rec["supplier_id"],))
+        if not sites:
+            sup = db.query(
+                "SELECT name FROM suppliers WHERE id = %s", (rec["supplier_id"],)
+            ) if rec.get("supplier_id") else []
+            sup_name = sup[0]["name"] if sup else "неизвестный поставщик"
+            notifier.add_event(
+                "price_no_site", "Прайс не применён",
+                "Прайс не применён: у поставщика нет сайта",
+                "Прайс «%s» (%s) не применён: ни один сайт не привязан к поставщику. "
+                "Привяжите сайт в настройках и переобработайте прайс."
+                % (rec["filename"], sup_name),
+                "price_no_site:%s:%s" % (rec["supplier_id"], price_list_id),
+            )
         applied_slugs = 0
         changed_total = 0
         per_site = []
