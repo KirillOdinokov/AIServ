@@ -775,7 +775,7 @@ def site_detail_page(request: Request, site_id: int):
     if not row:
         raise HTTPException(404, "site not found")
     site = row[0]
-    suppliers = db.query("SELECT id, name FROM suppliers WHERE portal_id IS NOT NULL ORDER BY name")
+    suppliers = db.query("SELECT id, name FROM suppliers ORDER BY name")
     portal_users = db.query(
         "SELECT portal_id, full_name, department, position, phone, is_active "
         "FROM portal_users WHERE department = 'Продажи' "
