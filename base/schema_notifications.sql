@@ -1,4 +1,7 @@
 -- Уведомления веб-интерфейса: недоступность сайтов/серверов, нагрузка, TTFB.
+-- Применять от роли-владельца БД (base), иначе сервис получит permission denied:
+--   PGPASSWORD=... psql -h 127.0.0.1 -U base -d base -f base/schema_notifications.sql
+-- (при применении от postgres — ALTER TABLE notifications OWNER TO base;)
 CREATE TABLE IF NOT EXISTS notifications (
     id BIGSERIAL PRIMARY KEY,
     dedup_key TEXT NOT NULL,

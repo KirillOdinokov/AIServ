@@ -238,8 +238,10 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
 ## Git (репозиторий проекта)
 
 - Remote: `git@github.com:KirillOdinokov/AIServ.git` (публичный), ветка `main`.
-- Рабочая копия: Windows `E:\Оптимизация\LOCAL FLUX` (источник); деплой на сервер
-  позже через `git pull` (сервер `/home/kirill/flux`).
+- Рабочая копия: Windows `E:\Оптимизация\LOCAL FLUX` (источник). Сервер
+  `/home/kirill/flux` — **не git-клон**: изменённые файлы перекладываются через
+  `pscp`, команды — через `plink -m скрипт.sh` (git — только резервная копия,
+  `git pull` на сервере не работает).
 - SSH deploy key: `~/.ssh/aiserv_deploy` (ed25519); в git настроен
   `core.sshCommand` (ключ + `known_hosts` по короткому пути `C:/Users/C523~1/...`).
 - `.gitignore` исключает: `*_token.txt`, `.env`, `SSH_access.txt`, `access.txt`,
