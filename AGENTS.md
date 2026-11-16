@@ -288,6 +288,18 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
   `sites.domain`), плюс `EMAIL_PRICE_EXTRA_DOMAINS`. Обновляются `products` (в
   режиме `source`), `product_sites.current_price`, для WP — `site_updates`;
   пишутся `price_changes`, событие в колокольчик и ответ «было → стало».
+- **Цены Amalor (2026-11-16):** `GET /base/api/site/1/prices?non_null=1[&since=ISO]`
+  отдаёт `{prices: {AM-SKU: цена}, cursor, generated_at}`; `cursor` — с запасом
+  5 минут, поэтому повторная отправка безопасна. `product_sites.current_price`
+  обновляется при применении прайсов (`apply_price_list`, `recompute_site_queue`)
+  и ручной правке по письму. Amalor (Django, gitflic `yourun/amalor`) забирает
+  инкремент командой `sync_prices_from_base` (состояние в
+  `PRIVATE_MEDIA_ROOT/price_sync_state.json`) по DAG `price_sync` каждые 15 минут
+  через `docker exec amalor_backend`. Оба сервера Amalor имеют независимые копии
+  БД и синкаются сами; полный срез ≈240 КБ gzip, инкремент — килобайты.
+- Старые сайты `steklotkani.ru` и `steklotkan-t.ru` удалены из Базы (2026-11-16);
+  остались `amalor.ru` (id 1) и `rex.moscow` (id 6). Поставщик «ПК Стройстекло»
+  (id 32) оставлен по решению владельца.
 - Схема: suppliers, sites, products, product_sites, price_lists, price_list_items,
   price_changes, reviews, mapping_memory, site_updates, emails, email_attachments,
   documents/document_chunks (pgvector), chat_sessions/chat_messages.
