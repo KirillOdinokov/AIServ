@@ -308,9 +308,9 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
   отличии от выложенного снимка. Проверено: сверка 0, сквозной тест
   1250→1300→1250. Парсер прайса VILPE реализован (`base/vilpe_price_parser.py`
   + `base/vilpe_price_service.py`, dispatch в `price_service`): маппинг по
-  `sheet/row` + fallback по артикулу; SAVO — отдельным прайсом. Dry-run текущего
-  файла: 1311 маппингов, 1 расхождение (`nasadka Power A 350` 2800→3100), в Базу
-  не применялось.
+  `sheet/row` + fallback по артикулу; SAVO — отдельным прайсом. Прайс 28.09.2026
+  применён (price_list 13): 1311 маппингов, 1 изменение (`nasadka Power A 350`
+  2800→3100), 3 SAVO пропущены; сайт выкатил 3 100.
 - Схема: suppliers, sites, products, product_sites, price_lists, price_list_items,
   price_changes, reviews, mapping_memory, site_updates, emails, email_attachments,
   documents/document_chunks (pgvector), chat_sessions/chat_messages.
