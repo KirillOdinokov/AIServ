@@ -298,8 +298,16 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
   через `docker exec amalor_backend`. Оба сервера Amalor имеют независимые копии
   БД и синкаются сами; полный срез ≈240 КБ gzip, инкремент — килобайты.
 - Старые сайты `steklotkani.ru` и `steklotkan-t.ru` удалены из Базы (2026-11-16);
-  остались `amalor.ru` (id 1) и `rex.moscow` (id 6). Поставщик «ПК Стройстекло»
-  (id 32) оставлен по решению владельца.
+  в Базе: `amalor.ru` (id 1), `rex.moscow` (id 6), `vilpe-roofing.ru` (id 7,
+  VILPE Roofing). Поставщик «ПК Стройстекло» (id 32) оставлен по решению владельца.
+- **VILPE Roofing (id 7, 2026-11-17):** статический сайт на том же сервере
+  (`enixfirstvds`, `/opt/vr`), supplier **VILPE** (id 330), 1644 `product_sites`
+  (1613 цен, 31 «по запросу»), 1314 строк `site_price_mapping`, 1364 артикула.
+  Синк `/opt/vr/tools/sync_prices.py` каждые 30 минут (`VR_SITE_ID=7` в
+  `/opt/vr/.env`), состояние `data/price_sync_state.json`, сборка/деплой при
+  отличии от выложенного снимка. Проверено: сверка 0, сквозной тест
+  1250→1300→1250. Парсер прайса VILPE в Базе пока не реализован — новые прайсы
+  VILPE требуют отдельного сервиса (аналог `rex_price_service`).
 - Схема: suppliers, sites, products, product_sites, price_lists, price_list_items,
   price_changes, reviews, mapping_memory, site_updates, emails, email_attachments,
   documents/document_chunks (pgvector), chat_sessions/chat_messages.
