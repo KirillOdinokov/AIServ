@@ -59,6 +59,12 @@ def process_price_list(price_list_id, dry_run=False):
                 "price_no_site:%s:%s" % (rec.get("supplier_id"), price_list_id),
             )
 
+        is_savo = (
+            "savo" in (rec.get("filename") or "").lower()
+            or "тихая кухня" in (rec.get("filename") or "").lower()
+            or any("savo" in (it.get("sheet") or "").lower() for it in items)
+        )
+
         per_site = []
         changed_total = 0
         mapped_total = 0
@@ -76,26 +82,37 @@ def process_price_list(price_list_id, dry_run=False):
                 "WHERE site_id = %s",
                 (site["id"],),
             )
-            changed, missing = [], []
-            mapped = 0
+            pairs, missing = [], []
             savo_skipped = 0
-            for m in mapping:
-                prod = by_slug.get(m["slug"])
-                if not prod:
-                    missing.append(m["slug"])
-                    continue
-                # SAVO идёт отдельным прайсом; основной лист VILPE его не трогает
-                if "savo" in (prod.get("name") or "").lower():
-                    savo_skipped += 1
-                    continue
-                item = by_row.get((str(m.get("sheet") or "").strip(), m.get("row_num")))
-                if not item:
+            if is_savo:
+                # SAVO — отдельный прайс; маппим по артикулу, без site_price_mapping
+                for prod in products:
                     code = _norm_sku(prod.get("manufacturer_sku"))
                     item = by_code.get(code) if code else None
-                if not item:
-                    missing.append(m["slug"])
-                    continue
-                mapped += 1
+                    if item:
+                        pairs.append((prod, item))
+            else:
+                for m in mapping:
+                    prod = by_slug.get(m["slug"])
+                    if not prod:
+                        missing.append(m["slug"])
+                        continue
+                    # SAVO идёт отдельным прайсом; основной лист VILPE его не трогает
+                    if "savo" in (prod.get("name") or "").lower():
+                        savo_skipped += 1
+                        continue
+                    item = by_row.get((str(m.get("sheet") or "").strip(), m.get("row_num")))
+                    if not item:
+                        code = _norm_sku(prod.get("manufacturer_sku"))
+                        item = by_code.get(code) if code else None
+                    if not item:
+                        missing.append(m["slug"])
+                        continue
+                    pairs.append((prod, item))
+
+            changed = []
+            mapped = len(pairs)
+            for prod, item in pairs:
                 # цены VILPE на сайте — целые рубли, дробная часть отбрасывается
                 retail = int(float(item["price"]))
                 old = prod.get("price")
@@ -106,9 +123,9 @@ def process_price_list(price_list_id, dry_run=False):
                         mrc_price=prod.get("mrc_price"),
                     )
                     changed.append({
-                        "slug": m["slug"],
+                        "slug": prod["slug"],
                         "product_id": prod["product_id"],
-                        "name": prod.get("name") or m["slug"],
+                        "name": prod.get("name") or prod["slug"],
                         "old": (float(old) if old is not None else None),
                         "new": retail,
                         "site_price": (float(site_price) if site_price is not None else None),
