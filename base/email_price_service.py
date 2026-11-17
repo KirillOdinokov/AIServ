@@ -54,30 +54,28 @@ def looks_like_request(text):
 
 
 def parse_commands(text):
-    """Найти в тексте пары «URL + цена» (по одной на строку, можно несколько строк)."""
+    """Найти пары «URL + цена»; цена может быть на следующей строке."""
+    text = text or ""
+    matches = list(URL_RE.finditer(text))
     cmds = []
-    for line in (text or "").splitlines():
-        urls = URL_RE.findall(line)
-        if not urls:
+    for i, match in enumerate(matches):
+        clean = match.group(0).rstrip(".,;:!?)]»\"'")
+        stop = matches[i + 1].start() if i + 1 < len(matches) else min(len(text), match.end() + 300)
+        tail = text[match.end():stop]
+        price = _parse_price(tail[:300])
+        if price is None:
+            price = _parse_price(text[max(0, match.start() - 80):match.start()])
+        if price is None:
             continue
-        for url in urls:
-            clean = url.rstrip(".,;:!?)]»\"'")
-            idx = line.find(clean)
-            tail = line[idx + len(clean):] if idx >= 0 else ""
-            price = _parse_price(tail)
-            if price is None and idx > 0:
-                price = _parse_price(line[:idx][-80:])
-            if price is None:
-                continue
-            parts = urlsplit(clean)
-            host = (parts.hostname or "").lower()
-            path = parts.path.strip("/")
-            slug = unquote(path.rsplit("/", 1)[-1]) if path else ""
-            if slug.lower().endswith(".html"):
-                slug = slug[:-5]
-            if not host or not slug:
-                continue
-            cmds.append({"url": clean, "host": host, "slug": slug, "price": price})
+        parts = urlsplit(clean)
+        host = (parts.hostname or "").lower()
+        path = parts.path.strip("/")
+        slug = unquote(path.rsplit("/", 1)[-1]) if path else ""
+        if slug.lower().endswith(".html"):
+            slug = slug[:-5]
+        if not host or not slug:
+            continue
+        cmds.append({"url": clean, "host": host, "slug": slug, "price": price})
     unique = {}
     for cmd in cmds:
         unique[(cmd["host"], cmd["slug"])] = cmd
@@ -277,8 +275,7 @@ def process(from_addr, subject, message_id, text, send_reply=True):
     for cmd in commands:
         site = _find_site(cmd["host"])
         if not site:
-            results.append({"ok": False, "url": cmd["url"],
-                            "error": "сайт не найден в «Базе»"})
+            # ссылки из подписи/чужих доменов — молча пропускаем
             continue
         if not sender_allowed(from_addr, site):
             continue
