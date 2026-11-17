@@ -306,8 +306,11 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
   Синк `/opt/vr/tools/sync_prices.py` каждые 30 минут (`VR_SITE_ID=7` в
   `/opt/vr/.env`), состояние `data/price_sync_state.json`, сборка/деплой при
   отличии от выложенного снимка. Проверено: сверка 0, сквозной тест
-  1250→1300→1250. Парсер прайса VILPE в Базе пока не реализован — новые прайсы
-  VILPE требуют отдельного сервиса (аналог `rex_price_service`).
+  1250→1300→1250. Парсер прайса VILPE реализован (`base/vilpe_price_parser.py`
+  + `base/vilpe_price_service.py`, dispatch в `price_service`): маппинг по
+  `sheet/row` + fallback по артикулу; SAVO — отдельным прайсом. Dry-run текущего
+  файла: 1311 маппингов, 1 расхождение (`nasadka Power A 350` 2800→3100), в Базу
+  не применялось.
 - Схема: suppliers, sites, products, product_sites, price_lists, price_list_items,
   price_changes, reviews, mapping_memory, site_updates, emails, email_attachments,
   documents/document_chunks (pgvector), chat_sessions/chat_messages.

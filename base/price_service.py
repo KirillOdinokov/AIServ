@@ -15,6 +15,7 @@ import price_matcher
 import price_parser
 import price_reply
 import rex_price_service
+import vilpe_price_service
 
 UPLOAD_DIR = Path(__file__).resolve().parent / "uploads" / "prices"
 ALLOWED_EXT = {".doc", ".docx", ".xls", ".xlsx", ".csv"}
@@ -139,6 +140,8 @@ def _process_price_list(price_list_id):
         sup = db.query("SELECT slug FROM suppliers WHERE id=%s", (rec["supplier_id"],))
         if sup and sup[0]["slug"] == rex_price_service.REX_SUPPLIER_SLUG:
             return rex_price_service.process_price_list(price_list_id)
+        if sup and sup[0]["slug"] == vilpe_price_service.VILPE_SUPPLIER_SLUG:
+            return vilpe_price_service.process_price_list(price_list_id)
 
     parsed = price_parser.parse_file(rec["stored_path"])
     columns = parsed["columns"]
