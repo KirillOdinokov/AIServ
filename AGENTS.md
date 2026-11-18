@@ -312,6 +312,15 @@ GPU RTX 3090 24GB, драйвер 595.99.02 (зафиксирован `apt-mark 
   отдельно и маппится по артикулу (53 поз.), основной VILPE-лист SAVO не трогает.
   Прайс 28.09.2026 применён (price_list 13): 1311 маппингов, 1 изменение
   (`nasadka Power A 350` 2800→3100); SAVO 17.11.2026 — 53 matched, 0 изменений.
+- **АКВАШПОНКА (id 9, 2026-11-18):** статический сайт на **Mars**
+  (`188.127.225.67`, `servers.id=3`), supplier **АКВАСТОП** (id 332; 4 инструмента
+  Deformix — supplier `deformix` id 291), 185 `products`/`product_sites`
+  (177 цен, 8 «по запросу»), 161 строка `site_price_mapping` (PDF-строки в
+  `row_text`, добавлены поля `row_text/supplier_sku/expected_price/note`).
+  Цены уникальные (прайс АКВАСТОП 05.02.2024 + каталог 2023), парсер прайса
+  АКВАСТОП пока не реализован. Сверка сайта с Базой: 0 изменений, 0 проблем;
+  мониторинг 200 OK (TTFB 7.8 с — медленно). Серверная автоматика (перенос
+  репозитория на Mars, `aqua-sync.timer`) — TODO.
 - Схема: suppliers, sites, products, product_sites, price_lists, price_list_items,
   price_changes, reviews, mapping_memory, site_updates, emails, email_attachments,
   documents/document_chunks (pgvector), chat_sessions/chat_messages.
